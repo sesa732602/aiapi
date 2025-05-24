@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    /* 基本选项 */
+    "target": "es2016",                                  /* 指定ECMAScript目标版本 */
+    "module": "commonjs",                                /* 指定模块代码生成 */
+    "lib": ["es6"],                                      /* 指定要包含在编译中的库文件 */
+    "outDir": "./dist",                                  /* 输出目录 */
+    "rootDir": "./src",                                  /* 源文件目录 */
+    
+    /* 严格类型检查选项 */
+    "strict": true,                                      /* 启用所有严格类型检查选项 */
+    "noImplicitAny": true,                               /* 在表达式和声明上有隐含的any类型时报错 */
+    "strictNullChecks": true,                            /* 启用严格的null检查 */
+    
+    /* 额外检查 */
+    "esModuleInterop": true,                             /* 启用ES模块互操作性 */
+    "skipLibCheck": true,                                /* 跳过声明文件的类型检查 */
+    "forceConsistentCasingInFileNames": true,            /* 禁止对同一个文件的不一致的引用 */
+    
+    /* 实验性选项 */
+    "experimentalDecorators": true,                      /* 启用实验性的ES装饰器 */
+    "emitDecoratorMetadata": true,                       /* 为装饰器提供元数据的支持 */
+    
+    /* 高级选项 */
+    "resolveJsonModule": true,                           /* 允许导入.json文件 */
+    "baseUrl": ".",                                      /* 基本目录，用于解析非相对模块名称 */
+    "paths": {
+      "*": ["node_modules/*", "src/types/*"]             /* 路径映射 */
+    }
+  },
+  "include": ["src/**/*"],                               /* 包含的文件 */
+  "exclude": ["node_modules", "**/*.test.ts"]            /* 排除的文件 */
+}

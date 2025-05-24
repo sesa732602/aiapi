@@ -1,0 +1,55 @@
+{
+  "lang": "zh-CN",
+  "title": "接口管理平台",
+  "description": "一个基于TypeScript的接口管理平台，提供API文档展示、权限管理、团队协作、版本控制和接口售卖功能",
+  "themeConfig": {
+    "nav": [
+      { "text": "首页", "link": "/" },
+      { "text": "API文档", "link": "/api/" },
+      { "text": "团队管理", "link": "/team/" },
+      { "text": "用户中心", "link": "/user/" }
+    ],
+    "sidebar": {
+      "/api/": [
+        {
+          "text": "API管理",
+          "items": [
+            { "text": "API概览", "link": "/api/" },
+            { "text": "创建API", "link": "/api/create" },
+            { "text": "版本控制", "link": "/api/versions" },
+            { "text": "权限管理", "link": "/api/permissions" }
+          ]
+        },
+        {
+          "text": "接口售卖",
+          "items": [
+            { "text": "套餐管理", "link": "/api/plans" },
+            { "text": "订单管理", "link": "/api/orders" },
+            { "text": "统计分析", "link": "/api/stats" }
+          ]
+        }
+      ],
+      "/team/": [
+        {
+          "text": "团队管理",
+          "items": [
+            { "text": "团队概览", "link": "/team/" },
+            { "text": "创建团队", "link": "/team/create" },
+            { "text": "成员管理", "link": "/team/members" }
+          ]
+        }
+      ],
+      "/user/": [
+        {
+          "text": "用户中心",
+          "items": [
+            { "text": "个人资料", "link": "/user/" },
+            { "text": "我的API", "link": "/user/apis" },
+            { "text": "我的订单", "link": "/user/orders" },
+            { "text": "充值管理", "link": "/user/recharge" }
+          ]
+        }
+      ]
+    }
+  }
+}

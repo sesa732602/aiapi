@@ -1,0 +1,1 @@
+import{_ as i,c as a,o as e,a_ as t}from"./chunks/framework.CSHEQ64G.js";const u=JSON.parse('{"title":"接口管理平台","description":"","frontmatter":{},"headers":[],"relativePath":"index.md","filePath":"index.md"}'),r={name:"index.md"};function o(n,l,s,d,h,p){return e(),a("div",null,l[0]||(l[0]=[t("",10)]))}const _=i(r,[["render",o]]);export{u as __pageData,_ as default};

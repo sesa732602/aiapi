@@ -1,0 +1,13 @@
+{
+  "name": "api-management-platform-deploy",
+  "version": "1.0.0",
+  "description": "接口管理平台部署包",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2"
+  }
+}

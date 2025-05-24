@@ -19,7 +19,18 @@ export default {
       more: '更多',
       yes: '是',
       no: '否',
-      actions: '操作'
+      actions: '操作',
+      required: '必填',
+      languageChanged: '语言已切换',
+      noData: '暂无数据'
+    },
+    
+    // 应用
+    app: {
+      title: '接口管理平台',
+      copyright: '版权所有',
+      language: '语言',
+      switchLanguage: '切换语言'
     },
     
     // 导航
@@ -30,7 +41,12 @@ export default {
       teamManagement: '团队管理',
       userCenter: '用户中心',
       settings: '设置',
-      logout: '退出登录'
+      logout: '退出登录',
+      adminPanel: '管理面板',
+      expand: '展开',
+      collapse: '收起',
+      statistics: '统计分析',
+      orderManagement: '订单管理'
     },
     
     // 登录页面
@@ -183,7 +199,13 @@ export default {
       removeMemberSuccess: '成员移除成功',
       removeMemberFailed: '成员移除失败',
       updateRoleSuccess: '角色更新成功',
-      updateRoleFailed: '角色更新失败'
+      updateRoleFailed: '角色更新失败',
+      noTeam: '您尚未创建或加入任何团队',
+      setAdmin: '设为管理员',
+      setMember: '设为普通成员',
+      userAlreadyInTeam: '该用户已加入其他团队',
+      userNotExist: '用户不存在',
+      selectUser: '请选择要添加的用户'
     },
     
     // 订单管理
@@ -283,7 +305,18 @@ export default {
       more: 'More',
       yes: 'Yes',
       no: 'No',
-      actions: 'Actions'
+      actions: 'Actions',
+      required: 'Required',
+      languageChanged: 'Language changed',
+      noData: 'No data available'
+    },
+    
+    // Application
+    app: {
+      title: 'API Management Platform',
+      copyright: 'All Rights Reserved',
+      language: 'Language',
+      switchLanguage: 'Switch Language'
     },
     
     // Navigation
@@ -294,7 +327,12 @@ export default {
       teamManagement: 'Team Management',
       userCenter: 'User Center',
       settings: 'Settings',
-      logout: 'Logout'
+      logout: 'Logout',
+      adminPanel: 'Admin Panel',
+      expand: 'Expand',
+      collapse: 'Collapse',
+      statistics: 'Statistics',
+      orderManagement: 'Order Management'
     },
     
     // Login page
@@ -447,7 +485,13 @@ export default {
       removeMemberSuccess: 'Member removed successfully',
       removeMemberFailed: 'Failed to remove member',
       updateRoleSuccess: 'Role updated successfully',
-      updateRoleFailed: 'Failed to update role'
+      updateRoleFailed: 'Failed to update role',
+      noTeam: 'You have not created or joined any team yet',
+      setAdmin: 'Set as Admin',
+      setMember: 'Set as Member',
+      userAlreadyInTeam: 'This user has already joined another team',
+      userNotExist: 'User does not exist',
+      selectUser: 'Please select a user to add'
     },
     
     // Order Management

@@ -528,6 +528,75 @@ export const setCurrentApiVersion = async (req: Request, res: Response): Promise
 };
 
 /**
+ * 删除API权限
+ * @param req 请求对象
+ * @param res 响应对象
+ */
+export const deleteApiPermission = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const permissionId = parseInt(req.params.permissionId, 10);
+    const userId = req.user.id;
+    
+    // 检查API是否存在
+    const api = await Api.findOne({ where: { id } });
+    if (!api) {
+      res.status(404).json({ message: 'API不存在' });
+      return;
+    }
+    
+    // 检查权限是否存在
+    const permission = await ApiPermission.findOne({ where: { id: permissionId, apiId: id } });
+    if (!permission) {
+      res.status(404).json({ message: 'API权限不存在' });
+      return;
+    }
+    
+    // 检查用户是否有权限删除API权限
+    if (req.user.role !== 'super_admin' && api.createdBy !== userId) {
+      // 检查用户是否是API所属团队的管理员
+      if (api.teamId) {
+        const teamMember = await TeamMember.findOne({ where: { teamId: api.teamId, userId } });
+        if (!teamMember || (teamMember.role !== 'owner' && teamMember.role !== 'admin')) {
+          // 检查用户是否有API管理权限
+          const apiPermission = await ApiPermission.findOne({ 
+            where: { 
+              apiId: id, 
+              userId, 
+              permissionType: ApiPermissionType.ADMIN 
+            } 
+          });
+          if (!apiPermission) {
+            res.status(403).json({ message: '无权删除API权限' });
+            return;
+          }
+        }
+      } else {
+        // 检查用户是否有API管理权限
+        const apiPermission = await ApiPermission.findOne({ 
+          where: { 
+            apiId: id, 
+            userId, 
+            permissionType: ApiPermissionType.ADMIN 
+          } 
+        });
+        if (!apiPermission) {
+          res.status(403).json({ message: '无权删除API权限' });
+          return;
+        }
+      }
+    }
+    
+    // 删除API权限
+    await ApiPermission.delete({ id: permissionId });
+    
+    res.status(200).json({ message: 'API权限删除成功' });
+  } catch (error) {
+    res.status(500).json({ message: '服务器错误', error });
+  }
+};
+
+/**
  * 获取API权限列表
  * @param req 请求对象
  * @param res 响应对象
@@ -713,11 +782,11 @@ export const addApiPermission = async (req: Request, res: Response): Promise<voi
 };
 
 /**
- * 移除API权限
+ * 删除API权限
  * @param req 请求对象
  * @param res 响应对象
  */
-export const removeApiPermission = async (req: Request, res: Response): Promise<void> => {
+export const deleteApiPermission = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = parseInt(req.params.id, 10);
     const permissionId = parseInt(req.params.permissionId, 10);

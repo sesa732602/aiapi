@@ -22,10 +22,11 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
 
     jwt.verify(token, JWT_SECRET, (err: jwt.VerifyErrors | null, decoded: unknown) => {
       if (err) {
-        return res.status(403).json({ message: '令牌无效或已过期' });
+        res.status(403).json({ message: '令牌无效或已过期' });
+        return;
       }
 
-      req.user = decoded as { id: number; username: string; role: string; [key: string]: unknown };
+      req.user = decoded as { id: number; username: string; email: string; role: string; [key: string]: unknown };
       next();
     });
   } else {
@@ -56,14 +57,16 @@ export const isApiOwner = async (req: Request, res: Response, next: NextFunction
     const userId = req.user?.id;
 
     if (!userId) {
-      return res.status(403).json({ message: '未授权' });
+      res.status(403).json({ message: '未授权' });
+      return;
     }
 
     const apiRepository = getRepository('Api');
     const api = await apiRepository.findOne({ where: { id: apiId } });
 
     if (!api) {
-      return res.status(404).json({ message: 'API不存在' });
+      res.status(404).json({ message: 'API不存在' });
+      return;
     }
 
     if (api.ownerId === userId || req.user?.role === 'admin') {
@@ -79,5 +82,5 @@ export const isApiOwner = async (req: Request, res: Response, next: NextFunction
 
 // 用户请求类型扩展
 export interface AuthenticatedRequest extends Request {
-  user: { id: number; username: string; role: string; [key: string]: unknown };
+  user: { id: number; username: string; email: string; role: string; [key: string]: unknown };
 }

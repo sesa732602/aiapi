@@ -21,7 +21,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       token: result.token,
       user: result.user
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ message: error.message || '服务器错误' });
   }
 };
@@ -43,7 +43,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       token: result.token,
       user: result.user
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(401).json({ message: error.message || '用户名或密码错误' });
   }
 };
@@ -65,7 +65,7 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
       token: result.token,
       user: result.user
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ message: error.message || '服务器错误' });
   }
 };
@@ -87,7 +87,7 @@ export const wechatLogin = async (req: Request, res: Response): Promise<void> =>
       token: result.token,
       user: result.user
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ message: error.message || '服务器错误' });
   }
 };
@@ -102,7 +102,7 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
     // 由于JWT是无状态的，服务端不需要做特殊处理
     // 客户端需要删除本地存储的token
     res.status(200).json({ message: '登出成功' });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ message: error.message || '服务器错误' });
   }
 };
@@ -125,7 +125,7 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
     const user = await userService.getUserById(userId);
     
     res.status(200).json({ user });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ message: error.message || '服务器错误' });
   }
 };
@@ -153,7 +153,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
       message: '资料更新成功',
       user
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({ message: error.message || '更新失败' });
   }
 };
@@ -178,7 +178,7 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
     await userService.changeUserPassword(userId, currentPassword, newPassword);
     
     res.status(200).json({ message: '密码修改成功' });
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({ message: error.message || '密码修改失败' });
   }
 };

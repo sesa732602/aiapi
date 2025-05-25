@@ -1,16 +1,12 @@
-import { User } from '../models/User';
+import { Express } from 'express';
 
 declare global {
   namespace Express {
-    interface Request {
-      user?: {
-        id: number;
-        username: string;
-        role: string;
-        [key: string]: any;
-      };
+    interface User {
+      id: number;
+      username: string;
+      email: string;
+      role: string;
     }
   }
 }
-
-export {};

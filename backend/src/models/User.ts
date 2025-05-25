@@ -17,52 +17,52 @@ export enum UserRole {
 @Entity()
 export class User extends BaseEntity {
   @PrimaryGeneratedColumn()
-  id!: number;
+    id!: number;
 
   @Column({ unique: true })
-  username!: string;
+    username!: string;
 
   @Column({ unique: true })
-  email!: string;
+    email!: string;
 
   @Column()
-  password!: string;
+    password!: string;
 
   @Column({
     type: 'enum',
     enum: UserRole,
     default: UserRole.USER
   })
-  role!: UserRole;
+    role!: UserRole;
 
   @Column({ nullable: true })
-  googleId!: string | null;
+    googleId!: string | null;
 
   @Column({ nullable: true })
-  wechatId!: string | null;
+    wechatId!: string | null;
 
   @Column({ nullable: true })
-  avatar!: string | null;
+    avatar!: string | null;
 
   @CreateDateColumn()
-  createdAt!: Date;
+    createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt!: Date;
+    updatedAt!: Date;
 
   // 关系字段
   @OneToMany(() => TeamMember, teamMember => teamMember.user)
-  teamMemberships!: TeamMember[];
+    teamMemberships!: TeamMember[];
 
   @OneToMany(() => ApiPermission, permission => permission.user)
-  apiPermissions!: ApiPermission[];
+    apiPermissions!: ApiPermission[];
 
   @OneToMany(() => ApiCall, apiCall => apiCall.user)
-  apiCalls!: ApiCall[];
+    apiCalls!: ApiCall[];
 
   @OneToMany(() => Order, order => order.user)
-  orders!: Order[];
+    orders!: Order[];
 
   @OneToMany(() => UserQuota, quota => quota.user)
-  quotas!: UserQuota[];
+    quotas!: UserQuota[];
 }

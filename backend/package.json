@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "description": "接口管理平台后端",
   "main": "dist/main.js",
-  "type": "module",
   "scripts": {
     "start": "node dist/main.js",
-    "dev": "node --loader ts-node/esm src/main.ts",
+    "dev": "ts-node src/main.ts",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint \"src/**/*.ts\"",
@@ -49,6 +48,7 @@
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
     "eslint": "^9.27.0",
+    "madge": "^8.0.0",
     "nodemon": "^2.0.21",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.2"

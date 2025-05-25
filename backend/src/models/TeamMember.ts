@@ -10,31 +10,31 @@ export type TeamMemberRole = 'owner' | 'admin' | 'member';
 @Entity()
 export class TeamMember extends BaseEntity {
   @PrimaryGeneratedColumn()
-  id!: number;
+    id!: number;
 
   @Column()
-  teamId!: number;
+    teamId!: number;
 
   @Column()
-  userId!: number;
+    userId!: number;
 
   @Column({
     type: 'enum',
     enum: ['owner', 'admin', 'member'],
     default: 'member'
   })
-  role!: TeamMemberRole;
+    role!: TeamMemberRole;
 
   @CreateDateColumn()
-  createdAt!: Date;
+    createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt!: Date;
+    updatedAt!: Date;
 
   // 关系字段
   @ManyToOne(() => Team, team => team.members)
-  team!: Team;
+    team!: Team;
 
   @ManyToOne(() => User, user => user.teamMemberships)
-  user!: User;
+    user!: User;
 }

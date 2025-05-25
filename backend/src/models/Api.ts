@@ -4,60 +4,75 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, BaseEntity } from 'typeorm';
 import { ApiVersion } from './ApiVersion';
 import { ApiPermission } from './ApiPermission';
-import { ApiPlan } from './ApiPlan';
 import { ApiCall } from './ApiCall';
+import { ApiPlan } from './ApiPlan';
 
-export enum ApiMethod {
+// HTTP方法枚举（用于API定义）
+/* eslint-disable no-unused-vars */
+export enum HttpMethod {
   GET = 'GET',
   POST = 'POST',
   PUT = 'PUT',
   DELETE = 'DELETE',
   PATCH = 'PATCH'
 }
+/* eslint-enable no-unused-vars */
 
 @Entity()
 export class Api extends BaseEntity {
   @PrimaryGeneratedColumn()
-  id!: number;
-
-  @Column({ unique: true })
-  name!: string;
-
-  @Column({ nullable: true })
-  description!: string;
+    id!: number;
 
   @Column()
-  path!: string;
+    name!: string;
 
-  @Column({
+  @Column({ nullable: true })
+    description!: string;
+
+  @Column()
+    baseUrl!: string;
+
+  @Column()
+    ownerId!: number;
+
+  @Column({ nullable: true })
+    teamId!: number | null;
+
+  @Column({ default: false })
+    isPublic!: boolean;
+
+  @Column({ default: true })
+    isActive!: boolean;
+
+  @Column({ nullable: true })
+    currentVersionId!: number | null;
+
+  @Column({ nullable: true })
+    path!: string;
+
+  @Column({ 
     type: 'enum',
-    enum: ApiMethod,
-    default: ApiMethod.GET
+    enum: HttpMethod,
+    default: HttpMethod.GET
   })
-  method!: ApiMethod;
-
-  @Column({ nullable: true })
-  teamId!: number | null;
-
-  @Column()
-  createdBy!: number;
+    method!: HttpMethod;
 
   @CreateDateColumn()
-  createdAt!: Date;
+    createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt!: Date;
+    updatedAt!: Date;
 
   // 关系字段
   @OneToMany(() => ApiVersion, version => version.api)
-  versions!: ApiVersion[];
+    versions!: ApiVersion[];
 
   @OneToMany(() => ApiPermission, permission => permission.api)
-  permissions!: ApiPermission[];
-
-  @OneToMany(() => ApiPlan, plan => plan.api)
-  plans!: ApiPlan[];
+    permissions!: ApiPermission[];
 
   @OneToMany(() => ApiCall, call => call.api)
-  calls!: ApiCall[];
+    calls!: ApiCall[];
+
+  @OneToMany(() => ApiPlan, plan => plan.api)
+    plans!: ApiPlan[];
 }

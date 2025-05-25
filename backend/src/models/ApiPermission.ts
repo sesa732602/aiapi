@@ -3,49 +3,61 @@
  */
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, BaseEntity } from 'typeorm';
 import { Api } from './Api';
-import { User } from './User';
 import { Team } from './Team';
+import { User } from './User';
 
-export enum ApiPermissionType {
+// 权限类型枚举
+/* eslint-disable no-unused-vars */
+export enum PermissionType {
   READ = 'read',
   WRITE = 'write',
   ADMIN = 'admin'
 }
+/* eslint-enable no-unused-vars */
 
 @Entity()
 export class ApiPermission extends BaseEntity {
   @PrimaryGeneratedColumn()
-  id!: number;
+    id!: number;
 
   @Column()
-  apiId!: number;
+    apiId!: number;
 
   @Column({ nullable: true })
-  userId!: number | null;
+    userId!: number | null;
 
   @Column({ nullable: true })
-  teamId!: number | null;
+    teamId!: number | null;
 
   @Column({
     type: 'enum',
-    enum: ApiPermissionType,
-    default: ApiPermissionType.READ
+    enum: PermissionType,
+    default: PermissionType.READ
   })
-  permissionType!: ApiPermissionType;
+    permissionType!: PermissionType;
+
+  @Column({
+    type: 'varchar',
+    length: 50
+  })
+    type!: string;
+
+  @Column()
+    targetId!: number;
 
   @CreateDateColumn()
-  createdAt!: Date;
+    createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt!: Date;
+    updatedAt!: Date;
 
   // 关系字段
   @ManyToOne(() => Api, api => api.permissions)
-  api!: Api;
+    api!: Api;
 
-  @ManyToOne(() => User, user => user.apiPermissions, { nullable: true })
-  user!: User | null;
+  @ManyToOne(() => User, user => user.apiPermissions)
+    user!: User;
 
-  @ManyToOne(() => Team, team => team.apiPermissions, { nullable: true })
-  team!: Team | null;
+  @ManyToOne(() => Team, team => team.apiPermissions)
+    team!: Team;
 }

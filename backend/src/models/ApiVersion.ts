@@ -7,27 +7,33 @@ import { Api } from './Api';
 @Entity()
 export class ApiVersion extends BaseEntity {
   @PrimaryGeneratedColumn()
-  id!: number;
+    id!: number;
 
   @Column()
-  apiId!: number;
+    apiId!: number;
 
   @Column()
-  version!: string;
+    version!: string;
 
   @Column({ nullable: true })
-  description!: string;
+    description!: string;
+
+  @Column({ type: 'text' })
+    spec!: string;
+
+  @Column()
+    createdBy!: number;
 
   @Column({ default: false })
-  isCurrent!: boolean;
+    isCurrent!: boolean;
 
   @CreateDateColumn()
-  createdAt!: Date;
+    createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt!: Date;
+    updatedAt!: Date;
 
   // 关系字段
   @ManyToOne(() => Api, api => api.versions)
-  api!: Api;
+    api!: Api;
 }

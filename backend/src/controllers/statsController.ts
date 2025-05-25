@@ -3,11 +3,11 @@
  */
 import { Request, Response } from 'express';
 import { getRepository } from 'typeorm';
-import type { Api } from '../models/Api';
-import type { ApiCall } from '../models/ApiCall';
-import type { Order } from '../models/Order';
-import type { TeamMember } from '../models/TeamMember';
-import type { UserQuota } from '../models/UserQuota';
+import { Api } from '../models/Api';
+import { ApiCall } from '../models/ApiCall';
+import { Order } from '../models/Order';
+import { TeamMember } from '../models/TeamMember';
+import { UserQuota } from '../models/UserQuota';
 
 /**
  * 获取API调用统计
@@ -136,8 +136,8 @@ export const getApiCallStats = async (req: Request, res: Response): Promise<void
     }));
     
     res.status(200).json({ stats: formattedStats });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
 
@@ -213,8 +213,8 @@ export const getRevenueStats = async (req: Request, res: Response): Promise<void
     }));
     
     res.status(200).json({ stats: formattedStats });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
 
@@ -292,8 +292,8 @@ export const getUserGrowthStats = async (req: Request, res: Response): Promise<v
     });
     
     res.status(200).json({ stats: formattedStats });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
 
@@ -399,8 +399,8 @@ export const getApiUsageStats = async (req: Request, res: Response): Promise<voi
       apiName: api.name,
       stats: formattedStats
     });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
 
@@ -500,8 +500,8 @@ export const getApiPerformanceStats = async (req: Request, res: Response): Promi
       minResponseTime,
       hourlyStats
     });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
 
@@ -535,8 +535,8 @@ export const recordApiCall = async (req: Request, res: Response): Promise<void> 
       message: 'API调用记录已保存',
       id: apiCall.id
     });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
 
@@ -620,8 +620,8 @@ export const getUserCallStats = async (req: Request, res: Response): Promise<voi
     }));
     
     res.status(200).json({ stats: formattedStats });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
 
@@ -630,7 +630,7 @@ export const getUserCallStats = async (req: Request, res: Response): Promise<voi
  * @param req 请求对象
  * @param res 响应对象
  */
-export const getUserQuotas = async (req: Request, res: Response): Promise<void> => {
+export const getUserQuota = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
     
@@ -639,52 +639,62 @@ export const getUserQuotas = async (req: Request, res: Response): Promise<void> 
       return;
     }
     
-    // 获取用户所有API的额度
-    const userQuotas = await UserQuota.find({
-      where: { userId },
-      relations: ['api']
+    const { apiId } = req.params;
+    
+    // 检查API是否存在
+    const api = await Api.findOne({ where: { id: apiId } });
+    if (!api) {
+      res.status(404).json({ message: 'API不存在' });
+      return;
+    }
+    
+    // 获取用户额度
+    const quota = await UserQuota.findOne({
+      where: {
+        userId,
+        apiId
+      }
     });
     
-    // 格式化结果
-    const formattedQuotas = userQuotas.map(quota => ({
-      id: quota.id,
-      apiId: quota.apiId,
-      apiName: quota.api ? quota.api.name : 'Unknown API',
-      remainingCalls: quota.remainingCalls,
-      totalCalls: quota.totalCalls,
-      expiresAt: quota.expiresAt
-    }));
+    if (!quota) {
+      res.status(404).json({ message: '未找到额度信息' });
+      return;
+    }
     
-    res.status(200).json({ quotas: formattedQuotas });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+    // 计算剩余调用次数
+    const remainingCalls = quota.callLimit - quota.callsUsed;
+    
+    res.status(200).json({
+      apiId,
+      apiName: api.name,
+      callLimit: quota.callLimit,
+      callsUsed: quota.callsUsed,
+      remainingCalls,
+      totalCalls: quota.callLimit,
+      concurrencyLimit: quota.concurrencyLimit,
+      expiresAt: quota.expiresAt
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
 
 /**
- * 充值用户额度
+ * 更新用户额度
  * @param req 请求对象
  * @param res 响应对象
  */
-export const rechargeUserQuota = async (req: Request, res: Response): Promise<void> => {
+export const updateUserQuota = async (req: Request, res: Response): Promise<void> => {
   try {
-    const adminId = req.user?.id;
-    
-    if (!adminId) {
-      res.status(401).json({ message: '未授权' });
-      return;
-    }
-    
     // 检查用户是否为管理员
     if (req.user?.role !== 'admin') {
-      res.status(403).json({ message: '无权充值用户额度' });
+      res.status(403).json({ message: '无权更新用户额度' });
       return;
     }
     
     const { userId, apiId, calls, expiresAt } = req.body;
     
-    // 验证必填字段
-    if (!userId || !apiId || !calls) {
+    if (!userId || !apiId || calls === undefined) {
       res.status(400).json({ message: '缺少必要参数' });
       return;
     }
@@ -696,42 +706,46 @@ export const rechargeUserQuota = async (req: Request, res: Response): Promise<vo
       return;
     }
     
-    // 查找用户额度
+    // 查找或创建用户额度
     let userQuota = await UserQuota.findOne({
-      where: { userId, apiId }
+      where: {
+        userId,
+        apiId
+      }
     });
     
     if (userQuota) {
       // 更新现有额度
-      userQuota.remainingCalls += calls;
-      userQuota.totalCalls += calls;
-      if (expiresAt) {
-        userQuota.expiresAt = new Date(expiresAt);
-      }
+      userQuota.callsUsed = 0;
+      userQuota.callLimit = calls;
+      userQuota.expiresAt = expiresAt ? new Date(expiresAt) : userQuota.expiresAt;
     } else {
       // 创建新额度
       userQuota = new UserQuota();
       userQuota.userId = userId;
       userQuota.apiId = apiId;
-      userQuota.remainingCalls = calls;
-      userQuota.totalCalls = calls;
+      userQuota.callLimit = calls;
+      userQuota.callsUsed = 0;
+      userQuota.concurrencyLimit = 5; // 默认并发限制
       userQuota.expiresAt = expiresAt ? new Date(expiresAt) : null;
     }
     
     await userQuota.save();
     
     res.status(200).json({
-      message: '用户额度充值成功',
+      message: '用户额度已更新',
       quota: {
-        id: userQuota.id,
         userId: userQuota.userId,
         apiId: userQuota.apiId,
-        remainingCalls: userQuota.remainingCalls,
-        totalCalls: userQuota.totalCalls,
+        callLimit: userQuota.callLimit,
+        callsUsed: userQuota.callsUsed,
+        remainingCalls: userQuota.callLimit - userQuota.callsUsed,
+        totalCalls: userQuota.callLimit,
+        concurrencyLimit: userQuota.concurrencyLimit,
         expiresAt: userQuota.expiresAt
       }
     });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };

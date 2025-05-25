@@ -17,7 +17,6 @@ import { UserQuota } from './models/UserQuota';
 
 // 创建数据库连接
 export const AppDataSource = new DataSource({
-  type: 'mysql', // 明确指定类型为mysql而非aurora-mysql
   ...dbConfig,
   entities: [
     User,

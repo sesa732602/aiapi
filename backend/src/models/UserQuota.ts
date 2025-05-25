@@ -14,65 +14,77 @@ export class UserQuota extends BaseEntity {
    * 额度ID
    */
   @PrimaryGeneratedColumn()
-  id!: number;
+    id!: number;
 
   /**
    * 用户ID
    */
   @Column()
-  userId!: number;
+    userId!: number;
 
   /**
    * API ID
    */
   @Column()
-  apiId!: number;
+    apiId!: number;
 
   /**
    * 调用次数限制
    */
   @Column()
-  callLimit!: number;
+    callLimit!: number;
 
   /**
    * 已使用调用次数
    */
   @Column({ default: 0 })
-  callsUsed!: number;
+    callsUsed!: number;
+
+  /**
+   * 剩余调用次数
+   */
+  @Column({ default: 0 })
+    remainingCalls!: number;
+
+  /**
+   * 总调用次数
+   */
+  @Column({ default: 0 })
+    totalCalls!: number;
 
   /**
    * 并发限制
    */
   @Column()
-  concurrencyLimit!: number;
+    concurrencyLimit!: number;
 
   /**
    * 过期时间
    */
   @Column({ nullable: true })
-  expiresAt!: Date;
+    expiresAt!: Date | null;
 
   /**
    * 关联用户
    */
   @ManyToOne(() => User, user => user.quotas)
-  user!: User;
+    user!: User;
 
   /**
    * 关联API
    */
   @ManyToOne(() => Api)
-  api!: Api;
+    api!: Api;
 
   /**
    * 创建时间
    */
   @CreateDateColumn()
-  createdAt!: Date;
+    createdAt!: Date;
 
   /**
    * 更新时间
    */
   @UpdateDateColumn()
-  updatedAt!: Date;
+    updatedAt!: Date;
 }

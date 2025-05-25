@@ -1,7 +1,7 @@
 /**
  * API路由配置
  */
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import * as authController from '../controllers/authController';
 import * as teamController from '../controllers/teamController';
 import * as apiController from '../controllers/apiController';
@@ -13,7 +13,7 @@ import { authMiddleware } from '../middlewares/authMiddleware';
 const router = Router();
 
 // 健康检查
-router.get('/health', (req, res) => {
+router.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok' });
 });
 
@@ -77,7 +77,7 @@ router.get('/stats/users/calls', authMiddleware, statsController.getUserCallStat
 router.get('/stats/revenue', authMiddleware, statsController.getRevenueStats);
 
 // 用户额度相关路由
-router.get('/users/quotas', authMiddleware, statsController.getUserQuotas);
-router.post('/users/quotas/recharge', authMiddleware, statsController.rechargeUserQuota);
+router.get('/users/quotas', authMiddleware, statsController.getUserQuota);
+router.post('/users/quotas/recharge', authMiddleware, statsController.updateUserQuota);
 
 export default router;

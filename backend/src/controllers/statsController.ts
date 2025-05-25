@@ -2,7 +2,7 @@
  * 统计控制器
  */
 import { Request, Response } from 'express';
-import { getRepository } from 'typeorm';
+import { getRepository, In, MoreThanOrEqual, IsNull } from 'typeorm';
 import { Api } from '../models/Api';
 import { ApiCall } from '../models/ApiCall';
 import { Order } from '../models/Order';
@@ -16,12 +16,12 @@ import { UserQuota } from '../models/UserQuota';
  */
 export const getApiCallStats = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    
-    if (!userId) {
+    if (!req.user) {
       res.status(401).json({ message: '未授权' });
       return;
     }
+    
+    const userId = req.user.id;
     
     const { apiId, period = 'day', startDate, endDate } = req.query;
     
@@ -31,10 +31,11 @@ export const getApiCallStats = async (req: Request, res: Response): Promise<void
     
     // 如果指定了API ID，则只查询该API的调用记录
     if (apiId) {
-      queryBuilder.where('apiCall.apiId = :apiId', { apiId });
+      const apiIdNum = parseInt(apiId as string, 10);
+      queryBuilder.where('apiCall.apiId = :apiId', { apiId: apiIdNum });
       
       // 检查用户是否有权限查看该API的统计信息
-      const api = await Api.findOne({ where: { id: apiId as string } });
+      const api = await Api.findOne({ where: { id: apiIdNum } });
       if (!api) {
         res.status(404).json({ message: 'API不存在' });
         return;
@@ -42,14 +43,20 @@ export const getApiCallStats = async (req: Request, res: Response): Promise<void
       
       // 检查用户是否是API所有者或团队成员
       if (api.ownerId !== userId) {
-        const teamMember = await TeamMember.findOne({
-          where: {
-            userId,
-            teamId: api.teamId
+        // 如果teamId为null，则不需要查询团队成员
+        if (api.teamId !== null) {
+          const teamMember = await TeamMember.findOne({
+            where: {
+              userId,
+              teamId: api.teamId
+            }
+          });
+          
+          if (!teamMember && req.user.role !== 'admin') {
+            res.status(403).json({ message: '无权查看此API的统计信息' });
+            return;
           }
-        });
-        
-        if (!teamMember && req.user?.role !== 'admin') {
+        } else if (req.user.role !== 'admin') {
           res.status(403).json({ message: '无权查看此API的统计信息' });
           return;
         }
@@ -61,10 +68,10 @@ export const getApiCallStats = async (req: Request, res: Response): Promise<void
       
       // 获取用户所在团队的API
       const teamMemberships = await TeamMember.find({ where: { userId } });
-      const teamIds = teamMemberships.map(tm => tm.teamId);
+      const teamIds = teamMemberships.map(tm => tm.teamId).filter(id => id !== null) as number[];
       
       if (teamIds.length > 0) {
-        const teamApis = await Api.find({ where: { teamId: { $in: teamIds } } });
+        const teamApis = await Api.find({ where: { teamId: In(teamIds) } });
         userApiIds.push(...teamApis.map(api => api.id));
       }
       
@@ -120,7 +127,7 @@ export const getApiCallStats = async (req: Request, res: Response): Promise<void
     
     // 获取API名称
     const apiIds = [...new Set(stats.map(stat => stat.apiId))];
-    const apis = await Api.find({ where: { id: { $in: apiIds } } });
+    const apis = await Api.find({ where: { id: In(apiIds) } });
     const apiMap = apis.reduce((map, api) => {
       map[api.id] = api.name;
       return map;
@@ -148,15 +155,15 @@ export const getApiCallStats = async (req: Request, res: Response): Promise<void
  */
 export const getRevenueStats = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    
-    if (!userId) {
+    if (!req.user) {
       res.status(401).json({ message: '未授权' });
       return;
     }
     
+    const userId = req.user.id;
+    
     // 检查用户是否为管理员
-    if (req.user?.role !== 'admin') {
+    if (req.user.role !== 'admin') {
       res.status(403).json({ message: '无权查看收入统计' });
       return;
     }
@@ -225,15 +232,15 @@ export const getRevenueStats = async (req: Request, res: Response): Promise<void
  */
 export const getUserGrowthStats = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    
-    if (!userId) {
+    if (!req.user) {
       res.status(401).json({ message: '未授权' });
       return;
     }
     
+    const userId = req.user.id;
+    
     // 检查用户是否为管理员
-    if (req.user?.role !== 'admin') {
+    if (req.user.role !== 'admin') {
       res.status(403).json({ message: '无权查看用户增长统计' });
       return;
     }
@@ -304,18 +311,19 @@ export const getUserGrowthStats = async (req: Request, res: Response): Promise<v
  */
 export const getApiUsageStats = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    
-    if (!userId) {
+    if (!req.user) {
       res.status(401).json({ message: '未授权' });
       return;
     }
     
+    const userId = req.user.id;
+    
     const { apiId } = req.params;
+    const apiIdNum = parseInt(apiId as string, 10);
     const { period = 'day', startDate, endDate } = req.query;
     
     // 检查API是否存在
-    const api = await Api.findOne({ where: { id: apiId } });
+    const api = await Api.findOne({ where: { id: apiIdNum } });
     if (!api) {
       res.status(404).json({ message: 'API不存在' });
       return;
@@ -323,14 +331,20 @@ export const getApiUsageStats = async (req: Request, res: Response): Promise<voi
     
     // 检查用户是否有权限查看该API的统计信息
     if (api.ownerId !== userId) {
-      const teamMember = await TeamMember.findOne({
-        where: {
-          userId,
-          teamId: api.teamId
+      // 如果teamId为null，则不需要查询团队成员
+      if (api.teamId !== null) {
+        const teamMember = await TeamMember.findOne({
+          where: {
+            userId,
+            teamId: api.teamId
+          }
+        });
+        
+        if (!teamMember && req.user.role !== 'admin') {
+          res.status(403).json({ message: '无权查看此API的统计信息' });
+          return;
         }
-      });
-      
-      if (!teamMember && req.user?.role !== 'admin') {
+      } else if (req.user.role !== 'admin') {
         res.status(403).json({ message: '无权查看此API的统计信息' });
         return;
       }
@@ -339,7 +353,7 @@ export const getApiUsageStats = async (req: Request, res: Response): Promise<voi
     // 构建查询条件
     const queryBuilder = getRepository(ApiCall)
       .createQueryBuilder('apiCall')
-      .where('apiCall.apiId = :apiId', { apiId });
+      .where('apiCall.apiId = :apiId', { apiId: apiIdNum });
     
     // 添加日期范围过滤
     if (startDate) {
@@ -411,17 +425,18 @@ export const getApiUsageStats = async (req: Request, res: Response): Promise<voi
  */
 export const getApiPerformanceStats = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    
-    if (!userId) {
+    if (!req.user) {
       res.status(401).json({ message: '未授权' });
       return;
     }
     
+    const userId = req.user.id;
+    
     const { apiId } = req.params;
+    const apiIdNum = parseInt(apiId as string, 10);
     
     // 检查API是否存在
-    const api = await Api.findOne({ where: { id: apiId } });
+    const api = await Api.findOne({ where: { id: apiIdNum } });
     if (!api) {
       res.status(404).json({ message: 'API不存在' });
       return;
@@ -429,14 +444,20 @@ export const getApiPerformanceStats = async (req: Request, res: Response): Promi
     
     // 检查用户是否有权限查看该API的统计信息
     if (api.ownerId !== userId) {
-      const teamMember = await TeamMember.findOne({
-        where: {
-          userId,
-          teamId: api.teamId
+      // 如果teamId为null，则不需要查询团队成员
+      if (api.teamId !== null) {
+        const teamMember = await TeamMember.findOne({
+          where: {
+            userId,
+            teamId: api.teamId
+          }
+        });
+        
+        if (!teamMember && req.user.role !== 'admin') {
+          res.status(403).json({ message: '无权查看此API的统计信息' });
+          return;
         }
-      });
-      
-      if (!teamMember && req.user?.role !== 'admin') {
+      } else if (req.user.role !== 'admin') {
         res.status(403).json({ message: '无权查看此API的统计信息' });
         return;
       }
@@ -448,8 +469,8 @@ export const getApiPerformanceStats = async (req: Request, res: Response): Promi
     
     const recentCalls = await ApiCall.find({
       where: {
-        apiId,
-        createdAt: { $gte: oneDayAgo }
+        apiId: apiIdNum,
+        createdAt: MoreThanOrEqual(oneDayAgo)
       },
       order: { createdAt: 'DESC' }
     });
@@ -522,12 +543,13 @@ export const recordApiCall = async (req: Request, res: Response): Promise<void> 
     
     // 创建API调用记录
     const apiCall = new ApiCall();
-    apiCall.apiId = apiId;
-    apiCall.userId = userId || null;
+    apiCall.apiId = parseInt(apiId, 10);
+    apiCall.userId = userId ? parseInt(userId, 10) : null;
     apiCall.status = status;
     apiCall.responseTime = responseTime || 0;
     apiCall.requestData = requestData || null;
     apiCall.responseData = responseData || null;
+    apiCall.startTime = new Date();
     
     await apiCall.save();
     
@@ -547,12 +569,12 @@ export const recordApiCall = async (req: Request, res: Response): Promise<void> 
  */
 export const getUserCallStats = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    
-    if (!userId) {
+    if (!req.user) {
       res.status(401).json({ message: '未授权' });
       return;
     }
+    
+    const userId = req.user.id;
     
     const { period = 'day', startDate, endDate } = req.query;
     
@@ -604,7 +626,7 @@ export const getUserCallStats = async (req: Request, res: Response): Promise<voi
     
     // 获取API名称
     const apiIds = [...new Set(stats.map(stat => stat.apiId))];
-    const apis = await Api.find({ where: { id: { $in: apiIds } } });
+    const apis = await Api.find({ where: { id: In(apiIds) } });
     const apiMap = apis.reduce((map, api) => {
       map[api.id] = api.name;
       return map;
@@ -632,17 +654,18 @@ export const getUserCallStats = async (req: Request, res: Response): Promise<voi
  */
 export const getUserQuota = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    
-    if (!userId) {
+    if (!req.user) {
       res.status(401).json({ message: '未授权' });
       return;
     }
     
+    const userId = req.user.id;
+    
     const { apiId } = req.params;
+    const apiIdNum = parseInt(apiId as string, 10);
     
     // 检查API是否存在
-    const api = await Api.findOne({ where: { id: apiId } });
+    const api = await Api.findOne({ where: { id: apiIdNum } });
     if (!api) {
       res.status(404).json({ message: 'API不存在' });
       return;
@@ -652,7 +675,7 @@ export const getUserQuota = async (req: Request, res: Response): Promise<void> =
     const quota = await UserQuota.findOne({
       where: {
         userId,
-        apiId
+        apiId: apiIdNum
       }
     });
     
@@ -686,8 +709,13 @@ export const getUserQuota = async (req: Request, res: Response): Promise<void> =
  */
 export const updateUserQuota = async (req: Request, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
+    
     // 检查用户是否为管理员
-    if (req.user?.role !== 'admin') {
+    if (req.user.role !== 'admin') {
       res.status(403).json({ message: '无权更新用户额度' });
       return;
     }
@@ -699,8 +727,11 @@ export const updateUserQuota = async (req: Request, res: Response): Promise<void
       return;
     }
     
+    const userIdNum = parseInt(userId, 10);
+    const apiIdNum = parseInt(apiId, 10);
+    
     // 检查API是否存在
-    const api = await Api.findOne({ where: { id: apiId } });
+    const api = await Api.findOne({ where: { id: apiIdNum } });
     if (!api) {
       res.status(404).json({ message: 'API不存在' });
       return;
@@ -709,8 +740,8 @@ export const updateUserQuota = async (req: Request, res: Response): Promise<void
     // 查找或创建用户额度
     let userQuota = await UserQuota.findOne({
       where: {
-        userId,
-        apiId
+        userId: userIdNum,
+        apiId: apiIdNum
       }
     });
     
@@ -718,14 +749,18 @@ export const updateUserQuota = async (req: Request, res: Response): Promise<void
       // 更新现有额度
       userQuota.callsUsed = 0;
       userQuota.callLimit = calls;
+      userQuota.remainingCalls = calls;
+      userQuota.totalCalls = calls;
       userQuota.expiresAt = expiresAt ? new Date(expiresAt) : userQuota.expiresAt;
     } else {
       // 创建新额度
       userQuota = new UserQuota();
-      userQuota.userId = userId;
-      userQuota.apiId = apiId;
+      userQuota.userId = userIdNum;
+      userQuota.apiId = apiIdNum;
       userQuota.callLimit = calls;
       userQuota.callsUsed = 0;
+      userQuota.remainingCalls = calls;
+      userQuota.totalCalls = calls;
       userQuota.concurrencyLimit = 5; // 默认并发限制
       userQuota.expiresAt = expiresAt ? new Date(expiresAt) : null;
     }
@@ -739,8 +774,8 @@ export const updateUserQuota = async (req: Request, res: Response): Promise<void
         apiId: userQuota.apiId,
         callLimit: userQuota.callLimit,
         callsUsed: userQuota.callsUsed,
-        remainingCalls: userQuota.callLimit - userQuota.callsUsed,
-        totalCalls: userQuota.callLimit,
+        remainingCalls: userQuota.remainingCalls,
+        totalCalls: userQuota.totalCalls,
         concurrencyLimit: userQuota.concurrencyLimit,
         expiresAt: userQuota.expiresAt
       }

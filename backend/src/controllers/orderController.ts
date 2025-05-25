@@ -6,7 +6,6 @@ import { Order } from '../models/Order';
 import { ApiPlan } from '../models/ApiPlan';
 import { Api } from '../models/Api';
 import { UserQuota } from '../models/UserQuota';
-import { User } from '../models/User';
 
 /**
  * 创建订单
@@ -16,6 +15,12 @@ import { User } from '../models/User';
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
   try {
     const { planId } = req.body;
+    
+    if (!req.user) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
+    
     const userId = req.user.id;
     
     // 检查套餐是否存在
@@ -56,8 +61,8 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
         planName: plan.name
       }
     });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
 
@@ -68,6 +73,11 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
  */
 export const getOrders = async (req: Request, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
+    
     const userId = req.user.id;
     const { status } = req.query;
     
@@ -103,8 +113,8 @@ export const getOrders = async (req: Request, res: Response): Promise<void> => {
     );
     
     res.status(200).json(orderDetails);
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
 
@@ -115,6 +125,11 @@ export const getOrders = async (req: Request, res: Response): Promise<void> => {
  */
 export const getOrderById = async (req: Request, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
+    
     const id = parseInt(req.params.id, 10);
     const userId = req.user.id;
     
@@ -140,8 +155,8 @@ export const getOrderById = async (req: Request, res: Response): Promise<void> =
       apiName: api?.name,
       planName: plan?.name
     });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
 
@@ -152,6 +167,11 @@ export const getOrderById = async (req: Request, res: Response): Promise<void> =
  */
 export const payOrder = async (req: Request, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
+    
     const id = parseInt(req.params.id, 10);
     const userId = req.user.id;
     
@@ -213,8 +233,8 @@ export const payOrder = async (req: Request, res: Response): Promise<void> => {
       },
       quota: userQuota
     });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
 
@@ -225,6 +245,11 @@ export const payOrder = async (req: Request, res: Response): Promise<void> => {
  */
 export const cancelOrder = async (req: Request, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
+    
     const id = parseInt(req.params.id, 10);
     const userId = req.user.id;
     
@@ -259,8 +284,8 @@ export const cancelOrder = async (req: Request, res: Response): Promise<void> =>
         cancelledAt: order.cancelledAt
       }
     });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
 
@@ -273,7 +298,8 @@ export const getRevenueStats = async (req: Request, res: Response): Promise<void
   try {
     const { startDate, endDate, apiId } = req.query;
     
-    let whereClause: any = { status: 'paid' };
+    // 使用更具体的类型替代any
+    const whereClause: Record<string, unknown> = { status: 'paid' };
     
     if (startDate && endDate) {
       whereClause.paidAt = {
@@ -320,7 +346,7 @@ export const getRevenueStats = async (req: Request, res: Response): Promise<void
       apiRevenue: apiRevenueDetails,
       orderCount: orders.length
     });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误', error });
+  } catch (error: any) {
+    res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };

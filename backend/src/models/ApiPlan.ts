@@ -7,36 +7,36 @@ import { Api } from './Api';
 @Entity()
 export class ApiPlan extends BaseEntity {
   @PrimaryGeneratedColumn()
-  id!: number;
+    id!: number;
 
   @Column()
-  apiId!: number;
+    apiId!: number;
 
   @Column()
-  name!: string;
+    name!: string;
 
   @Column({ nullable: true })
-  description!: string;
+    description!: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price!: number;
+    price!: number;
 
   @Column()
-  callLimit!: number;
+    callLimit!: number;
 
   @Column()
-  concurrencyLimit!: number;
+    concurrencyLimit!: number;
 
   @Column()
-  validityDays!: number;
+    validityDays!: number;
 
   @CreateDateColumn()
-  createdAt!: Date;
+    createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt!: Date;
+    updatedAt!: Date;
 
   // 关系字段
   @ManyToOne(() => Api, api => api.plans)
-  api!: Api;
+    api!: Api;
 }

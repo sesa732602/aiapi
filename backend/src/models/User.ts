@@ -4,15 +4,18 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, BaseEntity } from 'typeorm';
 import { TeamMember } from './TeamMember';
 import { ApiPermission } from './ApiPermission';
-import { ApiCall } from './ApiCall';
 import { Order } from './Order';
 import { UserQuota } from './UserQuota';
+import { ApiCall } from './ApiCall';
 
+// 用户角色枚举
+/* eslint-disable no-unused-vars */
 export enum UserRole {
   SUPER_ADMIN = 'super_admin',
   ADMIN = 'admin',
   USER = 'user'
 }
+/* eslint-enable no-unused-vars */
 
 @Entity()
 export class User extends BaseEntity {
@@ -33,16 +36,16 @@ export class User extends BaseEntity {
     enum: UserRole,
     default: UserRole.USER
   })
-    role!: UserRole;
+    role!: string;
 
   @Column({ nullable: true })
-    googleId!: string | null;
+    avatar!: string;
 
   @Column({ nullable: true })
-    wechatId!: string | null;
+    googleId!: string;
 
   @Column({ nullable: true })
-    avatar!: string | null;
+    wechatId!: string;
 
   @CreateDateColumn()
     createdAt!: Date;
@@ -57,12 +60,12 @@ export class User extends BaseEntity {
   @OneToMany(() => ApiPermission, permission => permission.user)
     apiPermissions!: ApiPermission[];
 
-  @OneToMany(() => ApiCall, apiCall => apiCall.user)
-    apiCalls!: ApiCall[];
-
   @OneToMany(() => Order, order => order.user)
     orders!: Order[];
 
   @OneToMany(() => UserQuota, quota => quota.user)
     quotas!: UserQuota[];
+
+  @OneToMany(() => ApiCall, call => call.user)
+    apiCalls!: ApiCall[];
 }

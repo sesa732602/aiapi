@@ -5,7 +5,7 @@ import { Request, Response } from 'express';
 import { Team } from '../models/Team';
 import { TeamMember } from '../models/TeamMember';
 import { User } from '../models/User';
-import { In } from 'typeorm';
+import { In, Not } from 'typeorm';
 
 /**
  * 获取用户的团队
@@ -14,10 +14,15 @@ import { In } from 'typeorm';
  */
 export const getUserTeam = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
     
     // 查找用户所在的团队
-    const teamMember = await TeamMember.findOne({ where: { userId } });
+    const teamMember = await TeamMember.findOne({ where: { userId: userId } });
     
     if (!teamMember) {
       res.status(200).json({ hasTeam: false });
@@ -56,10 +61,15 @@ export const getUserTeam = async (req: Request, res: Response): Promise<void> =>
 export const createTeam = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, description } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
     
     // 检查用户是否已经拥有或加入团队
-    const existingMembership = await TeamMember.findOne({ where: { userId } });
+    const existingMembership = await TeamMember.findOne({ where: { userId: userId } });
     if (existingMembership) {
       res.status(400).json({ message: '您已经拥有或加入了一个团队，每个用户只能属于一个团队' });
       return;
@@ -108,10 +118,15 @@ export const createTeam = async (req: Request, res: Response): Promise<void> => 
  */
 export const getTeamDetails = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
     
     // 查找用户所在的团队
-    const teamMember = await TeamMember.findOne({ where: { userId } });
+    const teamMember = await TeamMember.findOne({ where: { userId: userId } });
     
     if (!teamMember) {
       res.status(404).json({ message: '您尚未加入任何团队' });
@@ -168,10 +183,15 @@ export const getTeamDetails = async (req: Request, res: Response): Promise<void>
 export const updateTeam = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, description } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
     
     // 查找用户所在的团队
-    const teamMember = await TeamMember.findOne({ where: { userId } });
+    const teamMember = await TeamMember.findOne({ where: { userId: userId } });
     
     if (!teamMember) {
       res.status(404).json({ message: '您尚未加入任何团队' });
@@ -229,12 +249,17 @@ export const updateTeam = async (req: Request, res: Response): Promise<void> => 
  */
 export const deleteTeam = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
     
     // 查找用户所在的团队
     const teamMember = await TeamMember.findOne({ 
       where: { 
-        userId,
+        userId: userId,
         role: 'owner'
       }
     });
@@ -272,10 +297,15 @@ export const deleteTeam = async (req: Request, res: Response): Promise<void> => 
  */
 export const getTeamMembers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
     
     // 查找用户所在的团队
-    const teamMember = await TeamMember.findOne({ where: { userId } });
+    const teamMember = await TeamMember.findOne({ where: { userId: userId } });
     
     if (!teamMember) {
       res.status(404).json({ message: '您尚未加入任何团队' });
@@ -316,10 +346,15 @@ export const getTeamMembers = async (req: Request, res: Response): Promise<void>
 export const addTeamMember = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
     
     // 查找用户所在的团队
-    const teamMember = await TeamMember.findOne({ where: { userId } });
+    const teamMember = await TeamMember.findOne({ where: { userId: userId } });
     
     if (!teamMember) {
       res.status(404).json({ message: '您尚未加入任何团队' });
@@ -388,12 +423,17 @@ export const updateTeamMemberRole = async (req: Request, res: Response): Promise
   try {
     const { memberId } = req.params;
     const { role } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
     
     // 查找用户所在的团队
     const teamMember = await TeamMember.findOne({ 
       where: { 
-        userId,
+        userId: userId,
         role: 'owner'
       }
     });
@@ -449,10 +489,15 @@ export const updateTeamMemberRole = async (req: Request, res: Response): Promise
 export const removeTeamMember = async (req: Request, res: Response): Promise<void> => {
   try {
     const { memberId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
     
     // 查找用户所在的团队
-    const teamMember = await TeamMember.findOne({ where: { userId } });
+    const teamMember = await TeamMember.findOne({ where: { userId: userId } });
     
     if (!teamMember) {
       res.status(404).json({ message: '您尚未加入任何团队' });
@@ -499,10 +544,15 @@ export const removeTeamMember = async (req: Request, res: Response): Promise<voi
  */
 export const leaveTeam = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
     
     // 查找用户所在的团队
-    const teamMember = await TeamMember.findOne({ where: { userId } });
+    const teamMember = await TeamMember.findOne({ where: { userId: userId } });
     
     if (!teamMember) {
       res.status(404).json({ message: '您尚未加入任何团队' });
@@ -516,7 +566,7 @@ export const leaveTeam = async (req: Request, res: Response): Promise<void> => {
     }
     
     // 退出团队
-    await TeamMember.delete({ userId });
+    await TeamMember.delete({ userId: userId });
     
     res.status(200).json({ message: '已成功退出团队' });
   } catch (error) {
@@ -531,17 +581,20 @@ export const leaveTeam = async (req: Request, res: Response): Promise<void> => {
  */
 export const getInvitableUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({ message: '未授权' });
+      return;
+    }
     
     // 查找用户所在的团队
-    const teamMember = await TeamMember.findOne({ where: { userId } });
+    const teamMember = await TeamMember.findOne({ where: { userId: userId } });
     
     if (!teamMember) {
       res.status(404).json({ message: '您尚未加入任何团队' });
       return;
     }
-    
-    const teamId = teamMember.teamId;
     
     // 获取已在团队中的用户ID
     const teamMembers = await TeamMember.find();
@@ -550,7 +603,7 @@ export const getInvitableUsers = async (req: Request, res: Response): Promise<vo
     // 获取未加入任何团队的用户
     const invitableUsers = await User.find({
       where: {
-        id: Not(In(teamMemberUserIds))
+        id: teamMemberUserIds.length > 0 ? Not(In(teamMemberUserIds)) : undefined
       },
       select: ['id', 'username', 'email']
     });

@@ -2,71 +2,71 @@
  * 登录页面组件
  */
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { ElMessage } from 'element-plus'
-import { useRouter } from 'vue-router'
+import { ref, reactive } from 'vue';
+import { ElMessage } from 'element-plus';
+import { useRouter } from 'vue-router';
 
 // 模拟路由
 const router = {
   push: (path: string) => {
-    window.location.href = path
+    window.location.href = path;
   }
-}
+};
 
 // 登录表单数据
 const loginForm = reactive({
   username: '',
   password: '',
   role: 'user' // 默认为普通用户
-})
+});
 
 // 加载状态
-const loading = ref(false)
+const loading = ref(false);
 
 // 登录方法
 const handleLogin = () => {
   if (!loginForm.username || !loginForm.password) {
-    ElMessage.error('用户名和密码不能为空')
-    return
+    ElMessage.error('用户名和密码不能为空');
+    return;
   }
 
-  loading.value = true
+  loading.value = true;
 
   // 模拟登录请求
   setTimeout(() => {
-    loading.value = false
+    loading.value = false;
     
     // 模拟登录成功
     localStorage.setItem('user', JSON.stringify({
       username: loginForm.username,
       role: loginForm.role,
       token: 'mock-token-' + Date.now()
-    }))
+    }));
     
-    ElMessage.success('登录成功')
+    ElMessage.success('登录成功');
     
     // 根据角色跳转到不同页面
     if (loginForm.role === 'admin' || loginForm.role === 'super_admin') {
-      router.push('/api/')
+      router.push('/api/');
     } else {
-      router.push('/user/')
+      router.push('/user/');
     }
-  }, 1000)
-}
+  }, 1000);
+};
 
 // 快速登录预设
 const quickLogin = (role: string) => {
   if (role === 'admin') {
-    loginForm.username = 'admin'
-    loginForm.password = 'admin123'
-    loginForm.role = 'admin'
+    loginForm.username = 'admin';
+    loginForm.password = 'admin123';
+    loginForm.role = 'admin';
   } else {
-    loginForm.username = 'user'
-    loginForm.password = 'user123'
-    loginForm.role = 'user'
+    loginForm.username = 'user';
+    loginForm.password = 'user123';
+    loginForm.role = 'user';
   }
-  handleLogin()
-}
+  handleLogin();
+};
 </script>
 
 <template>

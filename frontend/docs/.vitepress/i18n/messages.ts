@@ -574,4 +574,4 @@ export default {
       revenueByDate: 'Revenue by Date'
     }
   }
-}
+};

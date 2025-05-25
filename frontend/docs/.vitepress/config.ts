@@ -1,8 +1,8 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig } from 'vitepress';
 
 // 定义环境变量，解决vue-i18n构建问题
 if (typeof window === 'undefined') {
-  global.__VUE_PROD_DEVTOOLS__ = false
+  global.__VUE_PROD_DEVTOOLS__ = false;
 }
 
 export default defineConfig({
@@ -70,4 +70,4 @@ export default defineConfig({
       copyright: '© 2025 接口管理平台'
     }
   }
-})
+});

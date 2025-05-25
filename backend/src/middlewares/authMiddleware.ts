@@ -4,7 +4,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { getRepository } from 'typeorm';
-import { User } from '../models/User';
+
+/* eslint-disable no-undef */
+/* eslint-env node */
 
 // JWT密钥
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -12,18 +14,18 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 /**
  * 验证JWT令牌
  */
-export const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
+export const authenticateJWT = (req: Request, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
 
   if (authHeader) {
     const token = authHeader.split(' ')[1];
 
-    jwt.verify(token, JWT_SECRET, (err, user) => {
+    jwt.verify(token, JWT_SECRET, (err: jwt.VerifyErrors | null, decoded: unknown) => {
       if (err) {
         return res.status(403).json({ message: '令牌无效或已过期' });
       }
 
-      req.user = user as Record<string, unknown>;
+      req.user = decoded as { id: number; username: string; role: string; [key: string]: unknown };
       next();
     });
   } else {
@@ -31,10 +33,13 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
   }
 };
 
+// 导出为authMiddleware以匹配路由中的引用
+export const authMiddleware = authenticateJWT;
+
 /**
  * 验证用户是否为管理员
  */
-export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
+export const isAdmin = (req: Request, res: Response, next: NextFunction): void => {
   if (req.user && req.user.role === 'admin') {
     next();
   } else {
@@ -45,7 +50,7 @@ export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
 /**
  * 验证用户是否为API所有者
  */
-export const isApiOwner = async (req: Request, res: Response, next: NextFunction) => {
+export const isApiOwner = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const apiId = req.params.id;
     const userId = req.user?.id;
@@ -66,6 +71,7 @@ export const isApiOwner = async (req: Request, res: Response, next: NextFunction
     } else {
       res.status(403).json({ message: '您不是此API的所有者' });
     }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
   } catch (err) {
     res.status(500).json({ message: '服务器错误' });
   }
@@ -73,5 +79,5 @@ export const isApiOwner = async (req: Request, res: Response, next: NextFunction
 
 // 用户请求类型扩展
 export interface AuthenticatedRequest extends Request {
-  user?: Record<string, unknown>;
+  user: { id: number; username: string; role: string; [key: string]: unknown };
 }

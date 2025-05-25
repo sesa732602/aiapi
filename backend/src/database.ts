@@ -1,38 +1,18 @@
 /**
- * 数据库连接配置
+ * 数据库连接模块
  */
 /* eslint-env node */
-import { DataSource, DataSourceOptions } from 'typeorm';
-import { dbConfig } from './config/database';
-import { User } from './models/User';
-import { Team } from './models/Team';
-import { TeamMember } from './models/TeamMember';
-import { Api } from './models/Api';
-import { ApiVersion } from './models/ApiVersion';
-import { ApiPermission } from './models/ApiPermission';
-import { ApiPlan } from './models/ApiPlan';
-import { Order } from './models/Order';
-import { ApiCall } from './models/ApiCall';
-import { UserQuota } from './models/UserQuota';
+import { DataSource } from 'typeorm';
+import { getDbConfig } from './config/database';
+import { registerEntities } from './models';
 
 // 创建数据库连接
 export const AppDataSource = new DataSource({
-  ...dbConfig,
-  entities: [
-    User,
-    Team,
-    TeamMember,
-    Api,
-    ApiVersion,
-    ApiPermission,
-    ApiPlan,
-    Order,
-    ApiCall,
-    UserQuota
-  ],
+  ...getDbConfig(),
+  entities: registerEntities(),
   migrations: [],
   subscribers: []
-} as DataSourceOptions);
+});
 
 // 初始化数据库连接
 export const initializeDatabase = async (): Promise<boolean> => {

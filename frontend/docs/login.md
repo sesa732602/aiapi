@@ -1,12 +1,11 @@
-/**
- * 登录页面
- */
+---
+title: 登录
+---
+
 <script setup>
 import LoginPage from '@theme/components/LoginPage.vue';
 </script>
 
-<template>
-  <div>
-    <LoginPage />
-  </div>
-</template>
+<ClientOnly>
+  <LoginPage />
+</ClientOnly>

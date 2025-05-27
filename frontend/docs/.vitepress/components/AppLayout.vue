@@ -2,12 +2,17 @@
  * 应用布局组件
  */
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, inject, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElConfigProvider } from 'element-plus';
 
 // 国际化
 const { t, locale } = useI18n();
+
+// 获取全局提供的语言切换方法和Element Plus语言包
+const toggleLocale = inject('toggleLocale');
+const currentLocale = inject('currentLocale', ref('zh-CN'));
+const elementLocale = inject('elementLocale');
 
 // 侧边栏折叠状态
 const isCollapse = ref(false);
@@ -20,12 +25,9 @@ const userInfo = ref({
 
 // 语言选项
 const languages = [
-  { value: 'zh-CN', label: '简体中文' },
-  { value: 'en', label: 'English' }
+  { value: 'zh-CN', label: t('language.simplified_chinese') },
+  { value: 'en', label: t('language.english') }
 ];
-
-// 当前语言
-const currentLanguage = ref(locale.value);
 
 // 是否已登录
 const isLoggedIn = ref(false);
@@ -42,9 +44,16 @@ const toggleSidebar = () => {
 
 // 切换语言
 const changeLanguage = (lang) => {
-  locale.value = lang;
-  currentLanguage.value = lang;
-  localStorage.setItem('language', lang);
+  // 使用全局提供的语言切换方法
+  if (toggleLocale) {
+    toggleLocale(lang);
+  } else {
+    // 兼容旧版本
+    locale.value = lang;
+    currentLocale.value = lang;
+    localStorage.setItem('locale', lang);
+  }
+  
   ElMessage.success(t('common.languageChanged'));
 };
 
@@ -78,13 +87,6 @@ const checkLoginStatus = () => {
 
 // 组件挂载时检查登录状态和加载用户信息
 onMounted(() => {
-  // 从本地存储中获取语言设置
-  const savedLanguage = localStorage.getItem('language');
-  if (savedLanguage) {
-    locale.value = savedLanguage;
-    currentLanguage.value = savedLanguage;
-  }
-  
   checkLoginStatus();
   
   // 如果已登录，加载用户信息
@@ -97,144 +99,146 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="app-container" :class="{ 'is-collapsed': isCollapse }">
-    <!-- 登录/注册页面不显示侧边栏和顶部栏 -->
-    <template v-if="!isLoggedIn">
-      <slot></slot>
-    </template>
-    
-    <template v-else>
-      <!-- 侧边栏 -->
-      <el-aside width="auto" class="sidebar">
-        <div class="logo-container">
-          <img src="/logo.png" alt="Logo" class="logo" v-if="!isCollapse" />
-          <img src="/logo-small.png" alt="Logo" class="logo-small" v-else />
-        </div>
-        
-        <el-menu
-          :default-active="$route.path"
-          class="sidebar-menu"
-          :collapse="isCollapse"
-          :collapse-transition="false"
-          router
-        >
-          <el-menu-item index="/dashboard">
-            <el-icon><HomeFilled /></el-icon>
-            <template #title>{{ t('nav.dashboard') }}</template>
-          </el-menu-item>
-          
-          <el-menu-item index="/api">
-            <el-icon><Connection /></el-icon>
-            <template #title>{{ t('nav.apiDocs') }}</template>
-          </el-menu-item>
-          
-          <el-menu-item index="/team">
-            <el-icon><UserFilled /></el-icon>
-            <template #title>{{ t('nav.teamManagement') }}</template>
-          </el-menu-item>
-          
-          <el-menu-item index="/order">
-            <el-icon><Tickets /></el-icon>
-            <template #title>{{ t('nav.orderManagement') }}</template>
-          </el-menu-item>
-          
-          <el-menu-item index="/stats">
-            <el-icon><DataAnalysis /></el-icon>
-            <template #title>{{ t('nav.statistics') }}</template>
-          </el-menu-item>
-          
-          <el-menu-item index="/user">
-            <el-icon><User /></el-icon>
-            <template #title>{{ t('nav.userCenter') }}</template>
-          </el-menu-item>
-          
-          <el-menu-item v-if="isSuperAdmin" index="/admin">
-            <el-icon><Setting /></el-icon>
-            <template #title>{{ t('nav.adminPanel') }}</template>
-          </el-menu-item>
-        </el-menu>
-        
-        <div class="sidebar-footer">
-          <el-tooltip :content="isCollapse ? t('nav.expand') : t('nav.collapse')" placement="right">
-            <el-button class="collapse-button" @click="toggleSidebar">
-              <el-icon>
-                <Fold v-if="!isCollapse" />
-                <Expand v-else />
-              </el-icon>
-            </el-button>
-          </el-tooltip>
-        </div>
-      </el-aside>
+  <el-config-provider :locale="elementLocale">
+    <div class="app-container" :class="{ 'is-collapsed': isCollapse }">
+      <!-- 登录/注册页面不显示侧边栏和顶部栏 -->
+      <template v-if="!isLoggedIn">
+        <slot></slot>
+      </template>
       
-      <!-- 主内容区 -->
-      <el-container class="main-container">
-        <!-- 顶部栏 -->
-        <el-header class="header">
-          <div class="header-left">
-            <h2 class="page-title">{{ t('app.title') }}</h2>
+      <template v-else>
+        <!-- 侧边栏 -->
+        <el-aside width="auto" class="sidebar">
+          <div class="logo-container">
+            <img src="/logo.png" alt="Logo" class="logo" v-if="!isCollapse" />
+            <img src="/logo-small.png" alt="Logo" class="logo-small" v-else />
           </div>
           
-          <div class="header-right">
-            <!-- 语言切换 -->
-            <el-dropdown @command="changeLanguage">
-              <span class="language-dropdown">
-                {{ currentLanguage === 'zh-CN' ? '简体中文' : 'English' }}
-                <el-icon class="el-icon--right"><arrow-down /></el-icon>
-              </span>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item
-                    v-for="lang in languages"
-                    :key="lang.value"
-                    :command="lang.value"
-                    :disabled="currentLanguage === lang.value"
-                  >
-                    {{ lang.label }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+          <el-menu
+            :default-active="$route.path"
+            class="sidebar-menu"
+            :collapse="isCollapse"
+            :collapse-transition="false"
+            router
+          >
+            <el-menu-item index="/dashboard">
+              <el-icon><HomeFilled /></el-icon>
+              <template #title>{{ t('nav.dashboard') }}</template>
+            </el-menu-item>
             
-            <!-- 用户菜单 -->
-            <el-dropdown @command="(command) => command === 'logout' && logout()">
-              <span class="user-dropdown">
-                {{ userInfo.username }}
-                <el-icon class="el-icon--right"><arrow-down /></el-icon>
-              </span>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="profile">
-                    <el-icon><User /></el-icon>
-                    {{ t('nav.userCenter') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="settings">
-                    <el-icon><Setting /></el-icon>
-                    {{ t('nav.settings') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item divided command="logout">
-                    <el-icon><SwitchButton /></el-icon>
-                    {{ t('nav.logout') }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <el-menu-item index="/api">
+              <el-icon><Connection /></el-icon>
+              <template #title>{{ t('nav.apiDocs') }}</template>
+            </el-menu-item>
+            
+            <el-menu-item index="/team">
+              <el-icon><UserFilled /></el-icon>
+              <template #title>{{ t('nav.teamManagement') }}</template>
+            </el-menu-item>
+            
+            <el-menu-item index="/order">
+              <el-icon><Tickets /></el-icon>
+              <template #title>{{ t('nav.orderManagement') }}</template>
+            </el-menu-item>
+            
+            <el-menu-item index="/stats">
+              <el-icon><DataAnalysis /></el-icon>
+              <template #title>{{ t('nav.statistics') }}</template>
+            </el-menu-item>
+            
+            <el-menu-item index="/user">
+              <el-icon><User /></el-icon>
+              <template #title>{{ t('nav.userCenter') }}</template>
+            </el-menu-item>
+            
+            <el-menu-item v-if="isSuperAdmin" index="/admin">
+              <el-icon><Setting /></el-icon>
+              <template #title>{{ t('nav.adminPanel') }}</template>
+            </el-menu-item>
+          </el-menu>
+          
+          <div class="sidebar-footer">
+            <el-tooltip :content="isCollapse ? t('nav.expand') : t('nav.collapse')" placement="right">
+              <el-button class="collapse-button" @click="toggleSidebar">
+                <el-icon>
+                  <Fold v-if="!isCollapse" />
+                  <Expand v-else />
+                </el-icon>
+              </el-button>
+            </el-tooltip>
           </div>
-        </el-header>
+        </el-aside>
         
-        <!-- 内容区 -->
-        <el-main class="content">
-          <slot></slot>
-        </el-main>
-        
-        <!-- 页脚 -->
-        <el-footer class="footer">
-          <div class="footer-content">
-            <p>© 2025 {{ t('app.title') }} - {{ t('app.copyright') }}</p>
-          </div>
-        </el-footer>
-      </el-container>
-    </template>
-  </div>
+        <!-- 主内容区 -->
+        <el-container class="main-container">
+          <!-- 顶部栏 -->
+          <el-header class="header">
+            <div class="header-left">
+              <h2 class="page-title">{{ t('app.title') }}</h2>
+            </div>
+            
+            <div class="header-right">
+              <!-- 语言切换 -->
+              <el-dropdown @command="changeLanguage">
+                <span class="language-dropdown">
+                  {{ currentLocale === 'zh-CN' ? t('language.simplified_chinese') : t('language.english') }}
+                  <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                </span>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item
+                      v-for="lang in languages"
+                      :key="lang.value"
+                      :command="lang.value"
+                      :disabled="currentLocale === lang.value"
+                    >
+                      {{ lang.label }}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+              
+              <!-- 用户菜单 -->
+              <el-dropdown @command="(command) => command === 'logout' && logout()">
+                <span class="user-dropdown">
+                  {{ userInfo.username }}
+                  <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                </span>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="profile">
+                      <el-icon><User /></el-icon>
+                      {{ t('nav.userCenter') }}
+                    </el-dropdown-item>
+                    <el-dropdown-item command="settings">
+                      <el-icon><Setting /></el-icon>
+                      {{ t('nav.settings') }}
+                    </el-dropdown-item>
+                    <el-dropdown-item divided command="logout">
+                      <el-icon><SwitchButton /></el-icon>
+                      {{ t('nav.logout') }}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
+          </el-header>
+          
+          <!-- 内容区 -->
+          <el-main class="content">
+            <slot></slot>
+          </el-main>
+          
+          <!-- 页脚 -->
+          <el-footer class="footer">
+            <div class="footer-content">
+              <p>{{ t('app.footerCopyright') }}</p>
+            </div>
+          </el-footer>
+        </el-container>
+      </template>
+    </div>
+  </el-config-provider>
 </template>
 
 <style scoped>

@@ -1,12 +1,62 @@
 // .vitepress/i18n/index.ts
 export default {
   'zh-CN': {
+    // 通用文本
+    common: {
+      submit: '提交',
+      cancel: '取消',
+      confirm: '确认',
+      delete: '删除',
+      edit: '编辑',
+      save: '保存',
+      search: '搜索',
+      loading: '加载中...',
+      noData: '暂无数据',
+      success: '成功',
+      error: '错误',
+      warning: '警告',
+      info: '信息',
+      languageChanged: '语言已切换',
+      back: '返回',
+      more: '更多',
+      yes: '是',
+      no: '否',
+      required: '必填',
+      optional: '选填',
+      operation: '操作',
+      add: '添加',
+      remove: '移除',
+      update: '更新',
+      create: '创建',
+      view: '查看',
+      manage: '管理',
+      invite: '邀请',
+      accept: '接受',
+      reject: '拒绝',
+      close: '关闭',
+      refresh: '刷新',
+      settings: '设置',
+      details: '详情',
+      status: '状态',
+      enabled: '已启用',
+      disabled: '已禁用',
+      unknown: '未知'
+    },
     // 导航栏
     nav: {
       home: '首页',
+      dashboard: '仪表盘',
       apiDocs: 'API文档',
       teamManagement: '团队管理',
-      userCenter: '用户中心'
+      userCenter: '用户中心',
+      orderManagement: '订单管理',
+      statistics: '统计分析',
+      adminPanel: '管理面板',
+      settings: '设置',
+      logout: '退出登录',
+      expand: '展开',
+      collapse: '收起',
+      myTeam: '我的团队'
     },
     // 侧边栏
     sidebar: {
@@ -27,7 +77,99 @@ export default {
       profile: '个人资料',
       myApis: '我的API',
       myOrders: '我的订单',
-      rechargeManagement: '充值管理'
+      rechargeManagement: '充值管理',
+      apiDetail: 'API详情',
+      apiVersions: '版本管理',
+      apiPermissions: '权限管理',
+      apiPlans: '套餐管理',
+      apiPurchase: '套餐购买'
+    },
+    // 应用信息
+    app: {
+      title: '接口管理平台',
+      copyright: '版权所有',
+      description: '一个功能强大的API管理解决方案',
+      license: '基于MIT许可发布',
+      footerCopyright: '© 2025 接口管理平台'
+    },
+    // 登录页
+    login: {
+      title: '接口管理平台',
+      subtitle: '登录您的账户',
+      username: '用户名',
+      password: '密码',
+      role: '角色',
+      usernamePlaceholder: '请输入用户名',
+      passwordPlaceholder: '请输入密码',
+      rolePlaceholder: '请选择角色',
+      loginButton: '登录',
+      quickLogin: '快速登录:',
+      adminLogin: '管理员登录',
+      userLogin: '用户登录',
+      otherLogin: '其他登录方式:',
+      googleLogin: 'Google登录',
+      wechatLogin: '微信登录',
+      userRole: {
+        user: '普通用户',
+        admin: '管理员',
+        super_admin: '超级管理员'
+      },
+      emptyError: '用户名和密码不能为空',
+      loginSuccess: '登录成功',
+      loginFailed: '登录失败',
+      rememberMe: '记住我',
+      forgotPassword: '忘记密码？',
+      register: '注册账号'
+    },
+    // 团队管理
+    team: {
+      title: '团队管理',
+      management: '团队管理',
+      createTeam: '创建团队',
+      teamName: '团队名称',
+      teamDescription: '团队描述',
+      createButton: '创建',
+      members: '成员',
+      role: '角色',
+      joinTime: '加入时间',
+      actions: '操作',
+      inviteMember: '邀请成员',
+      email: '邮箱',
+      sendInvite: '发送邀请',
+      invitationSent: '邀请已发送',
+      pendingInvitations: '待处理邀请',
+      acceptInvite: '接受邀请',
+      rejectInvite: '拒绝邀请',
+      invitationAccepted: '已接受邀请',
+      invitationRejected: '已拒绝邀请',
+      removeMember: '移除成员',
+      confirmRemove: '确定要移除该成员吗？',
+      memberRemoved: '成员已移除',
+      leaveTeam: '离开团队',
+      confirmLeave: '确定要离开该团队吗？',
+      teamLeft: '已离开团队',
+      create: '创建团队',
+      update: '更新团队',
+      delete: '删除团队',
+      deleteConfirm: '确定要删除该团队吗？',
+      createSuccess: '团队创建成功',
+      createFailed: '团队创建失败',
+      updateSuccess: '团队更新成功',
+      updateFailed: '团队更新失败',
+      deleteSuccess: '团队删除成功',
+      deleteFailed: '团队删除失败',
+      addMemberSuccess: '成员添加成功',
+      addMemberFailed: '成员添加失败',
+      removeMemberSuccess: '成员移除成功',
+      removeMemberFailed: '成员移除失败',
+      updateRoleSuccess: '角色更新成功',
+      updateRoleFailed: '角色更新失败',
+      noTeam: '您尚未创建或加入任何团队',
+      roles: {
+        owner: '所有者',
+        admin: '管理员',
+        member: '成员'
+      }
     },
     // 首页
     home: {
@@ -64,15 +206,84 @@ export default {
         backend: '后端：Node.js + Express + TypeScript',
         database: '数据库：MySQL'
       }
+    },
+    // 语言设置
+    language: {
+      title: '语言设置',
+      current: '当前语言',
+      switchTo: '切换到',
+      simplified_chinese: '简体中文',
+      english: '英文'
+    },
+    // 验证信息
+    validation: {
+      required: '{field}不能为空',
+      minLength: '{field}长度不能小于{min}个字符',
+      maxLength: '{field}长度不能超过{max}个字符',
+      email: '请输入有效的邮箱地址',
+      username: '用户名只能包含字母、数字和下划线',
+      password: '密码必须包含大小写字母、数字和特殊字符',
+      passwordMatch: '两次输入的密码不一致',
+      invalidInput: '输入无效'
     }
   },
   'en': {
+    // Common text
+    common: {
+      submit: 'Submit',
+      cancel: 'Cancel',
+      confirm: 'Confirm',
+      delete: 'Delete',
+      edit: 'Edit',
+      save: 'Save',
+      search: 'Search',
+      loading: 'Loading...',
+      noData: 'No Data',
+      success: 'Success',
+      error: 'Error',
+      warning: 'Warning',
+      info: 'Information',
+      languageChanged: 'Language changed',
+      back: 'Back',
+      more: 'More',
+      yes: 'Yes',
+      no: 'No',
+      required: 'Required',
+      optional: 'Optional',
+      operation: 'Operation',
+      add: 'Add',
+      remove: 'Remove',
+      update: 'Update',
+      create: 'Create',
+      view: 'View',
+      manage: 'Manage',
+      invite: 'Invite',
+      accept: 'Accept',
+      reject: 'Reject',
+      close: 'Close',
+      refresh: 'Refresh',
+      settings: 'Settings',
+      details: 'Details',
+      status: 'Status',
+      enabled: 'Enabled',
+      disabled: 'Disabled',
+      unknown: 'Unknown'
+    },
     // Navigation
     nav: {
       home: 'Home',
+      dashboard: 'Dashboard',
       apiDocs: 'API Docs',
       teamManagement: 'Team Management',
-      userCenter: 'User Center'
+      userCenter: 'User Center',
+      orderManagement: 'Order Management',
+      statistics: 'Statistics',
+      adminPanel: 'Admin Panel',
+      settings: 'Settings',
+      logout: 'Logout',
+      expand: 'Expand',
+      collapse: 'Collapse',
+      myTeam: 'My Team'
     },
     // Sidebar
     sidebar: {
@@ -93,7 +304,99 @@ export default {
       profile: 'Profile',
       myApis: 'My APIs',
       myOrders: 'My Orders',
-      rechargeManagement: 'Recharge Management'
+      rechargeManagement: 'Recharge Management',
+      apiDetail: 'API Details',
+      apiVersions: 'Version Management',
+      apiPermissions: 'Permission Management',
+      apiPlans: 'Plan Management',
+      apiPurchase: 'Plan Purchase'
+    },
+    // App information
+    app: {
+      title: 'API Management Platform',
+      copyright: 'All Rights Reserved',
+      description: 'A powerful API management solution',
+      license: 'Released under MIT License',
+      footerCopyright: '© 2025 API Management Platform'
+    },
+    // Login page
+    login: {
+      title: 'API Management Platform',
+      subtitle: 'Login to your account',
+      username: 'Username',
+      password: 'Password',
+      role: 'Role',
+      usernamePlaceholder: 'Please enter username',
+      passwordPlaceholder: 'Please enter password',
+      rolePlaceholder: 'Please select role',
+      loginButton: 'Login',
+      quickLogin: 'Quick Login:',
+      adminLogin: 'Admin Login',
+      userLogin: 'User Login',
+      otherLogin: 'Other Login Methods:',
+      googleLogin: 'Google Login',
+      wechatLogin: 'WeChat Login',
+      userRole: {
+        user: 'Regular User',
+        admin: 'Administrator',
+        super_admin: 'Super Administrator'
+      },
+      emptyError: 'Username and password cannot be empty',
+      loginSuccess: 'Login successful',
+      loginFailed: 'Login failed',
+      rememberMe: 'Remember me',
+      forgotPassword: 'Forgot password?',
+      register: 'Register'
+    },
+    // Team management
+    team: {
+      title: 'Team Management',
+      management: 'Team Management',
+      createTeam: 'Create Team',
+      teamName: 'Team Name',
+      teamDescription: 'Team Description',
+      createButton: 'Create',
+      members: 'Members',
+      role: 'Role',
+      joinTime: 'Join Time',
+      actions: 'Actions',
+      inviteMember: 'Invite Member',
+      email: 'Email',
+      sendInvite: 'Send Invitation',
+      invitationSent: 'Invitation sent',
+      pendingInvitations: 'Pending Invitations',
+      acceptInvite: 'Accept Invitation',
+      rejectInvite: 'Reject Invitation',
+      invitationAccepted: 'Invitation accepted',
+      invitationRejected: 'Invitation rejected',
+      removeMember: 'Remove Member',
+      confirmRemove: 'Are you sure you want to remove this member?',
+      memberRemoved: 'Member removed',
+      leaveTeam: 'Leave Team',
+      confirmLeave: 'Are you sure you want to leave this team?',
+      teamLeft: 'Left the team',
+      create: 'Create Team',
+      update: 'Update Team',
+      delete: 'Delete Team',
+      deleteConfirm: 'Are you sure you want to delete this team?',
+      createSuccess: 'Team created successfully',
+      createFailed: 'Failed to create team',
+      updateSuccess: 'Team updated successfully',
+      updateFailed: 'Failed to update team',
+      deleteSuccess: 'Team deleted successfully',
+      deleteFailed: 'Failed to delete team',
+      addMemberSuccess: 'Member added successfully',
+      addMemberFailed: 'Failed to add member',
+      removeMemberSuccess: 'Member removed successfully',
+      removeMemberFailed: 'Failed to remove member',
+      updateRoleSuccess: 'Role updated successfully',
+      updateRoleFailed: 'Failed to update role',
+      noTeam: 'You have not created or joined any team yet',
+      roles: {
+        owner: 'Owner',
+        admin: 'Admin',
+        member: 'Member'
+      }
     },
     // Home page
     home: {
@@ -130,6 +433,25 @@ export default {
         backend: 'Backend: Node.js + Express + TypeScript',
         database: 'Database: MySQL'
       }
+    },
+    // Language settings
+    language: {
+      title: 'Language Settings',
+      current: 'Current Language',
+      switchTo: 'Switch to',
+      simplified_chinese: 'Simplified Chinese',
+      english: 'English'
+    },
+    // Validation messages
+    validation: {
+      required: '{field} cannot be empty',
+      minLength: '{field} must be at least {min} characters',
+      maxLength: '{field} cannot exceed {max} characters',
+      email: 'Please enter a valid email address',
+      username: 'Username can only contain letters, numbers and underscores',
+      password: 'Password must contain uppercase and lowercase letters, numbers and special characters',
+      passwordMatch: 'Passwords do not match',
+      invalidInput: 'Invalid input'
     }
   }
 };

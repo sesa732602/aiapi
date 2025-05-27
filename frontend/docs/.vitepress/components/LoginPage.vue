@@ -2,9 +2,15 @@
  * 登录页面组件
  */
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, inject } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
+import LanguageSwitcher from './LanguageSwitcher.vue';
+
+// 国际化
+const { t } = useI18n();
+const elementLocale = inject('elementLocale');
 
 // 模拟路由
 const router = {
@@ -26,7 +32,7 @@ const loading = ref(false);
 // 登录方法
 const handleLogin = () => {
   if (!loginForm.username || !loginForm.password) {
-    ElMessage.error('用户名和密码不能为空');
+    ElMessage.error(t('login.emptyError'));
     return;
   }
 
@@ -43,7 +49,7 @@ const handleLogin = () => {
       token: 'mock-token-' + Date.now()
     }));
     
-    ElMessage.success('登录成功');
+    ElMessage.success(t('login.loginSuccess'));
     
     // 根据角色跳转到不同页面
     if (loginForm.role === 'admin' || loginForm.role === 'super_admin') {
@@ -70,59 +76,72 @@ const quickLogin = (role: string) => {
 </script>
 
 <template>
-  <div class="login-container">
-    <div class="login-box">
-      <h2>接口管理平台</h2>
-      <p class="subtitle">登录您的账户</p>
+  <el-config-provider :locale="elementLocale">
+    <div class="login-container">
+      <div class="language-switcher-container">
+        <LanguageSwitcher />
+      </div>
       
-      <el-form :model="loginForm" label-position="top">
-        <el-form-item label="用户名">
-          <el-input v-model="loginForm.username" placeholder="请输入用户名" />
-        </el-form-item>
+      <div class="login-box">
+        <h2>{{ t('login.title') }}</h2>
+        <p class="subtitle">{{ t('login.subtitle') }}</p>
         
-        <el-form-item label="密码">
-          <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" />
-        </el-form-item>
-        
-        <el-form-item label="角色">
-          <el-select v-model="loginForm.role" placeholder="请选择角色" style="width: 100%">
-            <el-option label="普通用户" value="user" />
-            <el-option label="管理员" value="admin" />
-            <el-option label="超级管理员" value="super_admin" />
-          </el-select>
-        </el-form-item>
-        
-        <el-form-item>
-          <el-button type="primary" :loading="loading" @click="handleLogin" style="width: 100%">
-            登录
-          </el-button>
-        </el-form-item>
-        
-        <div class="quick-login">
-          <p>快速登录:</p>
-          <el-button type="info" size="small" @click="quickLogin('admin')">管理员登录</el-button>
-          <el-button type="info" size="small" @click="quickLogin('user')">用户登录</el-button>
-        </div>
-        
-        <div class="other-login">
-          <p>其他登录方式:</p>
-          <div class="login-icons">
-            <el-button type="success" size="small">Google登录</el-button>
-            <el-button type="success" size="small">微信登录</el-button>
+        <el-form :model="loginForm" label-position="top">
+          <el-form-item :label="t('login.username')">
+            <el-input v-model="loginForm.username" :placeholder="t('login.usernamePlaceholder')" />
+          </el-form-item>
+          
+          <el-form-item :label="t('login.password')">
+            <el-input v-model="loginForm.password" type="password" :placeholder="t('login.passwordPlaceholder')" />
+          </el-form-item>
+          
+          <el-form-item :label="t('login.role')">
+            <el-select v-model="loginForm.role" :placeholder="t('login.rolePlaceholder')" style="width: 100%">
+              <el-option :label="t('login.userRole.user')" value="user" />
+              <el-option :label="t('login.userRole.admin')" value="admin" />
+              <el-option :label="t('login.userRole.super_admin')" value="super_admin" />
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item>
+            <el-button type="primary" :loading="loading" @click="handleLogin" style="width: 100%">
+              {{ t('login.loginButton') }}
+            </el-button>
+          </el-form-item>
+          
+          <div class="quick-login">
+            <p>{{ t('login.quickLogin') }}</p>
+            <el-button type="info" size="small" @click="quickLogin('admin')">{{ t('login.adminLogin') }}</el-button>
+            <el-button type="info" size="small" @click="quickLogin('user')">{{ t('login.userLogin') }}</el-button>
           </div>
-        </div>
-      </el-form>
+          
+          <div class="other-login">
+            <p>{{ t('login.otherLogin') }}</p>
+            <div class="login-icons">
+              <el-button type="success" size="small">{{ t('login.googleLogin') }}</el-button>
+              <el-button type="success" size="small">{{ t('login.wechatLogin') }}</el-button>
+            </div>
+          </div>
+        </el-form>
+      </div>
     </div>
-  </div>
+  </el-config-provider>
 </template>
 
 <style scoped>
 .login-container {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   min-height: 80vh;
   padding: 20px;
+}
+
+.language-switcher-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
 }
 
 .login-box {

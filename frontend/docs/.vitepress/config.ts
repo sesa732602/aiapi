@@ -1,59 +1,88 @@
+/**
+ * 配置文件 - 支持国际化
+ */
 import { defineConfig } from 'vitepress';
+import { createI18n } from 'vue-i18n';
+import messages from './i18n';
+
+// 获取本地存储的语言设置或使用默认值
+const getStoredLocale = () => {
+  if (typeof localStorage !== 'undefined') {
+    return localStorage.getItem('locale') || 'zh-CN';
+  }
+  return 'zh-CN';
+};
+
+// 当前语言
+const currentLocale = getStoredLocale();
 
 // 定义环境变量，解决vue-i18n构建问题
 if (typeof window === 'undefined') {
   global.__VUE_PROD_DEVTOOLS__ = false;
 }
 
+// 创建i18n实例用于配置文件
+const i18n = createI18n({
+  legacy: false,
+  locale: currentLocale,
+  fallbackLocale: 'en',
+  messages,
+});
+
+// 获取翻译函数
+const t = (key) => {
+  return i18n.global.t(key);
+};
+
 export default defineConfig({
-  lang: 'zh-CN',
-  title: '接口管理平台',
-  description: '功能强大的API接口管理平台',
+  lang: currentLocale,
+  title: currentLocale === 'zh-CN' ? '接口管理平台' : 'API Management Platform',
+  description: currentLocale === 'zh-CN' ? '功能强大的API接口管理平台' : 'A powerful API management solution',
   
   // 主题配置
   themeConfig: {
     logo: '/logo.png',
     nav: [
-      { text: '首页', link: '/' },
-      { text: 'API文档', link: '/api/' },
-      { text: '我的团队', link: '/team/' },
-      { text: '用户中心', link: '/user/' }
+      { text: t('nav.home'), link: '/' },
+      { text: t('nav.apiDocs'), link: '/api/' },
+      { text: t('nav.myTeam'), link: '/team/' },
+      { text: t('nav.userCenter'), link: '/user/' }
     ],
     
     sidebar: {
       '/api/': [
         {
-          text: 'API管理',
+          text: t('sidebar.apiManagement'),
           items: [
-            { text: 'API概览', link: '/api/' },
-            { text: 'API详情', link: '/api/detail' },
-            { text: '版本管理', link: '/api/versions' },
-            { text: '权限管理', link: '/api/permissions' }
+            { text: t('sidebar.apiOverview'), link: '/api/' },
+            { text: t('sidebar.apiDetail'), link: '/api/detail' },
+            { text: t('sidebar.apiVersions'), link: '/api/versions' },
+            { text: t('sidebar.apiPermissions'), link: '/api/permissions' }
           ]
         },
         {
-          text: 'API套餐',
+          text: t('sidebar.apiSelling'),
           items: [
-            { text: '套餐管理', link: '/api/plans' },
-            { text: '套餐购买', link: '/api/purchase' }
+            { text: t('sidebar.apiPlans'), link: '/api/plans' },
+            { text: t('sidebar.apiPurchase'), link: '/api/purchase' }
           ]
         }
       ],
       '/team/': [
         {
-          text: '我的团队',
+          text: t('nav.myTeam'),
           items: [
-            { text: '团队管理', link: '/team/' }
+            { text: t('team.management'), link: '/team/' }
           ]
         }
       ],
       '/user/': [
         {
-          text: '用户中心',
+          text: t('sidebar.userCenter'),
           items: [
-            { text: '个人资料', link: '/user/' },
-            { text: '我的API', link: '/user/apis' },
-            { text: '我的订单', link: '/user/orders' }
+            { text: t('sidebar.profile'), link: '/user/' },
+            { text: t('sidebar.myApis'), link: '/user/apis' },
+            { text: t('sidebar.myOrders'), link: '/user/orders' }
           ]
         }
       ]
@@ -66,8 +95,8 @@ export default defineConfig({
     
     // 页脚
     footer: {
-      message: '基于MIT许可发布',
-      copyright: '© 2025 接口管理平台'
+      message: t('app.license'),
+      copyright: t('app.footerCopyright')
     }
   }
 });

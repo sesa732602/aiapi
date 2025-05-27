@@ -1,4 +1,5 @@
 import { Express } from 'express';
+import { Request } from 'express';
 
 /**
  * 扩展Express命名空间中的User接口
@@ -13,4 +14,8 @@ declare global {
       role: string;    // 用户角色
     }
   }
+}
+
+export interface AuthenticatedRequest extends Request {
+  user: Express.User;
 }

@@ -1,8 +1,9 @@
 /**
  * 用户认证控制器
  */
-import { Request, Response } from 'express';
+import { Request, Response, Express } from 'express';
 import * as userService from '../services/userService';
+import { AuthenticatedRequest } from '../types/custom-express';
 
 /**
  * 用户注册
@@ -112,9 +113,9 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
  * @param req 请求对象
  * @param res 响应对象
  */
-export const getCurrentUser = async (req: Request, res: Response): Promise<void> => {
+export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user.id;
     
     if (!userId) {
       res.status(401).json({ message: '未授权' });

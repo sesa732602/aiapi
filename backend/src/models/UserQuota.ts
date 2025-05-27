@@ -61,7 +61,7 @@ export class UserQuota extends BaseEntity {
   /**
    * 过期时间
    */
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'timestamp' })
     expiresAt!: Date | null;
 
   /**

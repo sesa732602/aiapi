@@ -35,7 +35,7 @@ export class Api extends BaseEntity {
   @Column()
     ownerId!: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'int', nullable: true })
     teamId!: number | null;
 
   @Column({ default: false })
@@ -44,7 +44,7 @@ export class Api extends BaseEntity {
   @Column({ default: true })
     isActive!: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'int', nullable: true })
     currentVersionId!: number | null;
 
   @Column({ nullable: true })

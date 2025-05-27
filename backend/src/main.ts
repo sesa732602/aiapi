@@ -5,10 +5,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { initializeDatabase } from './database';
-
 // 加载环境变量
 dotenv.config();
+
+import { initializeDatabase } from './database';
 
 // 创建Express应用
 const app = express();

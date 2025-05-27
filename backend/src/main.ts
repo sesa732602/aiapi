@@ -1,3 +1,5 @@
+/// <reference path="./types/index.d.ts" />
+//
 /**
  * 应用入口文件
  */

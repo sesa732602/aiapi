@@ -114,12 +114,13 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
  */
 export const getCurrentUser = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    
-    if (!userId) {
+    // 确保req.user存在且有id属性
+    if (!req.user || !req.user.id) {
       res.status(401).json({ message: '未授权' });
       return;
     }
+    
+    const userId = req.user.id;
     
     // 调用服务层处理业务逻辑
     const user = await userService.getUserById(userId);
@@ -137,12 +138,13 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
  */
 export const updateProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    
-    if (!userId) {
+    // 确保req.user存在且有id属性
+    if (!req.user || !req.user.id) {
       res.status(401).json({ message: '未授权' });
       return;
     }
+    
+    const userId = req.user.id;
     
     const { username, email, avatar } = req.body;
     
@@ -165,12 +167,13 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
  */
 export const changePassword = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    
-    if (!userId) {
+    // 确保req.user存在且有id属性
+    if (!req.user || !req.user.id) {
       res.status(401).json({ message: '未授权' });
       return;
     }
+    
+    const userId = req.user.id;
     
     const { currentPassword, newPassword } = req.body;
     

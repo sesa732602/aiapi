@@ -5,7 +5,7 @@ title: 创建订单
 <script setup>
 import { onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import CreateOrderPage from '../../.vitepress/components/CreateOrderPage.vue';
+import CreateOrderPage from '@theme/components/CreateOrderPage.vue';
 
 // 检查用户是否已登录
 const isLoggedIn = ref(false);

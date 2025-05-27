@@ -5,7 +5,7 @@ title: 统计分析
 <script setup>
 import { onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import StatsPage from '../.vitepress/components/StatsPage.vue';
+import StatsPage from '@theme/components/StatsPage.vue';
 
 // 检查用户是否已登录
 const isLoggedIn = ref(false);

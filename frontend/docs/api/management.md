@@ -5,7 +5,7 @@ title: API管理
 <script setup>
 import { onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import ApiManagementPage from '../../.vitepress/components/ApiManagementPage.vue';
+import ApiManagementPage from '@theme/components/ApiManagementPage.vue';
 
 // 检查用户是否已登录
 const isLoggedIn = ref(false);

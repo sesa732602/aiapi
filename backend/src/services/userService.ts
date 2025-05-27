@@ -5,6 +5,7 @@
 /* eslint-env node */
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
 
 // 使用动态导入避免循环依赖
 const getUserModel = async () => {
@@ -12,9 +13,11 @@ const getUserModel = async () => {
   return User;
 };
 
-// JWT密钥
+// JWT配置
 // eslint-disable-next-line no-undef
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_EXPIRES_IN = '24h';
+const BCRYPT_SALT_ROUNDS = 12; // 增加盐轮数提高安全性
 
 /**
  * 用户注册
@@ -38,25 +41,21 @@ export const registerUser = async (username: string, email: string, password: st
   const user = new User();
   user.username = username;
   user.email = email;
-  user.password = await bcrypt.hash(password, 10);
+  user.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS); // 使用更高的盐轮数
   user.role = 'user';
+  
+  // 生成唯一的用户标识符
+  user.uuid = uuidv4();
+  
   await user.save();
   
   // 生成JWT令牌
-  const token = jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
-    JWT_SECRET,
-    { expiresIn: '24h' }
-  );
+  const token = generateToken(user);
   
   return {
+    success: true,
     token,
-    user: {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role
-    }
+    user: sanitizeUser(user)
   };
 };
 
@@ -79,20 +78,16 @@ export const loginUser = async (username: string, password: string) => {
   }
   
   // 生成JWT令牌
-  const token = jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
-    JWT_SECRET,
-    { expiresIn: '24h' }
-  );
+  const token = generateToken(user);
+  
+  // 记录最后登录时间
+  user.lastLoginAt = new Date();
+  await user.save();
   
   return {
+    success: true,
     token,
-    user: {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role
-    }
+    user: sanitizeUser(user)
   };
 };
 
@@ -121,9 +116,12 @@ export const googleLoginUser = async (googleId: string, email: string, name: str
       user = new User();
       user.username = `google_${name.replace(/\s+/g, '_').toLowerCase()}_${Date.now()}`;
       user.email = email;
-      user.password = await bcrypt.hash(Math.random().toString(36).slice(-8), 10);
+      // 为社交登录用户生成随机强密码
+      const randomPassword = generateSecureRandomPassword();
+      user.password = await bcrypt.hash(randomPassword, BCRYPT_SALT_ROUNDS);
       user.googleId = googleId;
       user.role = 'user';
+      user.uuid = uuidv4();
       if (avatar) {
         user.avatar = avatar;
       }
@@ -132,21 +130,16 @@ export const googleLoginUser = async (googleId: string, email: string, name: str
   }
   
   // 生成JWT令牌
-  const token = jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
-    JWT_SECRET,
-    { expiresIn: '24h' }
-  );
+  const token = generateToken(user);
+  
+  // 记录最后登录时间
+  user.lastLoginAt = new Date();
+  await user.save();
   
   return {
+    success: true,
     token,
-    user: {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar
-    }
+    user: sanitizeUser(user)
   };
 };
 
@@ -164,9 +157,12 @@ export const wechatLoginUser = async (wechatId: string, nickname: string, avatar
     user = new User();
     user.username = `wechat_${nickname.replace(/\s+/g, '_').toLowerCase()}_${Date.now()}`;
     user.email = `${user.username}@wechat.user`;
-    user.password = await bcrypt.hash(Math.random().toString(36).slice(-8), 10);
+    // 为社交登录用户生成随机强密码
+    const randomPassword = generateSecureRandomPassword();
+    user.password = await bcrypt.hash(randomPassword, BCRYPT_SALT_ROUNDS);
     user.wechatId = wechatId;
     user.role = 'user';
+    user.uuid = uuidv4();
     if (avatar) {
       user.avatar = avatar;
     }
@@ -174,21 +170,16 @@ export const wechatLoginUser = async (wechatId: string, nickname: string, avatar
   }
   
   // 生成JWT令牌
-  const token = jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
-    JWT_SECRET,
-    { expiresIn: '24h' }
-  );
+  const token = generateToken(user);
+  
+  // 记录最后登录时间
+  user.lastLoginAt = new Date();
+  await user.save();
   
   return {
+    success: true,
     token,
-    user: {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar
-    }
+    user: sanitizeUser(user)
   };
 };
 
@@ -203,14 +194,7 @@ export const getUserById = async (userId: number) => {
     throw new Error('用户不存在');
   }
   
-  return {
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    role: user.role,
-    avatar: user.avatar,
-    createdAt: user.createdAt
-  };
+  return sanitizeUser(user);
 };
 
 /**
@@ -250,11 +234,8 @@ export const updateUserProfile = async (userId: number, data: { username?: strin
   await user.save();
   
   return {
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    role: user.role,
-    avatar: user.avatar
+    success: true,
+    user: sanitizeUser(user)
   };
 };
 
@@ -276,8 +257,74 @@ export const changeUserPassword = async (userId: number, currentPassword: string
   }
   
   // 更新密码
-  user.password = await bcrypt.hash(newPassword, 10);
+  user.password = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
   await user.save();
   
-  return true;
+  return {
+    success: true,
+    message: '密码修改成功'
+  };
+};
+
+/**
+ * 生成JWT令牌
+ * @param user 用户对象
+ * @returns JWT令牌
+ */
+const generateToken = (user: any): string => {
+  return jwt.sign(
+    { 
+      id: user.id, 
+      username: user.username, 
+      role: user.role,
+      uuid: user.uuid // 添加uuid增强安全性
+    },
+    JWT_SECRET,
+    { 
+      expiresIn: JWT_EXPIRES_IN,
+      issuer: 'api-management-platform', // 添加颁发者
+      subject: user.id.toString() // 添加主题
+    }
+  );
+};
+
+/**
+ * 清理用户对象，移除敏感信息
+ * @param user 用户对象
+ * @returns 清理后的用户对象
+ */
+const sanitizeUser = (user: any) => {
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    avatar: user.avatar,
+    createdAt: user.createdAt,
+    lastLoginAt: user.lastLoginAt
+  };
+};
+
+/**
+ * 生成安全的随机密码
+ * @returns 随机密码
+ */
+const generateSecureRandomPassword = (): string => {
+  const length = 16;
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]:;?><,./-=';
+  let password = '';
+  
+  // 确保包含至少一个大写字母、小写字母、数字和特殊字符
+  password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)];
+  password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
+  password += '0123456789'[Math.floor(Math.random() * 10)];
+  password += '!@#$%^&*()_+~`|}{[]:;?><,./-='[Math.floor(Math.random() * 30)];
+  
+  // 填充剩余长度
+  for (let i = 4; i < length; i++) {
+    password += charset[Math.floor(Math.random() * charset.length)];
+  }
+  
+  // 打乱密码字符顺序
+  return password.split('').sort(() => 0.5 - Math.random()).join('');
 };

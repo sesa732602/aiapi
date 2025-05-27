@@ -9,6 +9,15 @@ import * as apiPlanController from '../controllers/apiPlanController';
 import * as orderController from '../controllers/orderController';
 import * as statsController from '../controllers/statsController';
 import { authMiddleware } from '../middlewares/authMiddleware';
+import { validate } from '../middlewares/validationMiddleware';
+import { 
+  registerValidation, 
+  loginValidation, 
+  googleLoginValidation, 
+  wechatLoginValidation,
+  changePasswordValidation,
+  updateProfileValidation
+} from '../validators/authValidators';
 
 const router = Router();
 
@@ -18,14 +27,14 @@ router.get('/health', (req: Request, res: Response) => {
 });
 
 // 认证相关路由
-router.post('/auth/register', authController.register);
-router.post('/auth/login', authController.login);
-router.post('/auth/google', authController.googleLogin);
-router.post('/auth/wechat', authController.wechatLogin);
+router.post('/auth/register', validate(registerValidation), authController.register);
+router.post('/auth/login', validate(loginValidation), authController.login);
+router.post('/auth/google', validate(googleLoginValidation), authController.googleLogin);
+router.post('/auth/wechat', validate(wechatLoginValidation), authController.wechatLogin);
 router.post('/auth/logout', authMiddleware, authController.logout);
 router.get('/auth/me', authMiddleware, authController.getCurrentUser);
-router.put('/auth/profile', authMiddleware, authController.updateProfile);
-router.post('/auth/change-password', authMiddleware, authController.changePassword);
+router.put('/auth/profile', authMiddleware, validate(updateProfileValidation), authController.updateProfile);
+router.post('/auth/change-password', authMiddleware, validate(changePasswordValidation), authController.changePassword);
 
 // 团队相关路由
 router.get('/team', authMiddleware, teamController.getUserTeam);

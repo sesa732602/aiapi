@@ -5,6 +5,16 @@ import { Request, Response, Express } from 'express';
 import * as userService from '../services/userService';
 
 /**
+ * 标准响应格式
+ */
+interface ApiResponse {
+  success: boolean;
+  message: string;
+  data?: any;
+  errors?: any[];
+}
+
+/**
  * 用户注册
  * @param req 请求对象
  * @param res 响应对象
@@ -16,13 +26,28 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     // 调用服务层处理业务逻辑
     const result = await userService.registerUser(username, email, password);
     
-    res.status(201).json({
+    // 返回标准响应格式
+    const response: ApiResponse = {
+      success: true,
       message: '注册成功',
-      token: result.token,
-      user: result.user
-    });
+      data: {
+        token: result.token,
+        user: result.user
+      }
+    };
+    
+    res.status(201).json(response);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || '服务器错误' });
+    // 错误响应
+    const response: ApiResponse = {
+      success: false,
+      message: error.message || '注册失败',
+      errors: [{ type: 'auth', message: error.message || '服务器错误' }]
+    };
+    
+    // 根据错误类型设置状态码
+    const statusCode = error.message.includes('已存在') ? 409 : 500;
+    res.status(statusCode).json(response);
   }
 };
 
@@ -38,13 +63,26 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // 调用服务层处理业务逻辑
     const result = await userService.loginUser(username, password);
     
-    res.status(200).json({
+    // 返回标准响应格式
+    const response: ApiResponse = {
+      success: true,
       message: '登录成功',
-      token: result.token,
-      user: result.user
-    });
+      data: {
+        token: result.token,
+        user: result.user
+      }
+    };
+    
+    res.status(200).json(response);
   } catch (error: any) {
-    res.status(401).json({ message: error.message || '用户名或密码错误' });
+    // 错误响应
+    const response: ApiResponse = {
+      success: false,
+      message: '登录失败',
+      errors: [{ type: 'auth', message: error.message || '用户名或密码错误' }]
+    };
+    
+    res.status(401).json(response);
   }
 };
 
@@ -60,13 +98,26 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
     // 调用服务层处理业务逻辑
     const result = await userService.googleLoginUser(googleId, email, name, avatar);
     
-    res.status(200).json({
+    // 返回标准响应格式
+    const response: ApiResponse = {
+      success: true,
       message: 'Google登录成功',
-      token: result.token,
-      user: result.user
-    });
+      data: {
+        token: result.token,
+        user: result.user
+      }
+    };
+    
+    res.status(200).json(response);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || '服务器错误' });
+    // 错误响应
+    const response: ApiResponse = {
+      success: false,
+      message: 'Google登录失败',
+      errors: [{ type: 'auth', message: error.message || '服务器错误' }]
+    };
+    
+    res.status(500).json(response);
   }
 };
 
@@ -82,13 +133,26 @@ export const wechatLogin = async (req: Request, res: Response): Promise<void> =>
     // 调用服务层处理业务逻辑
     const result = await userService.wechatLoginUser(wechatId, nickname, avatar);
     
-    res.status(200).json({
+    // 返回标准响应格式
+    const response: ApiResponse = {
+      success: true,
       message: '微信登录成功',
-      token: result.token,
-      user: result.user
-    });
+      data: {
+        token: result.token,
+        user: result.user
+      }
+    };
+    
+    res.status(200).json(response);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || '服务器错误' });
+    // 错误响应
+    const response: ApiResponse = {
+      success: false,
+      message: '微信登录失败',
+      errors: [{ type: 'auth', message: error.message || '服务器错误' }]
+    };
+    
+    res.status(500).json(response);
   }
 };
 
@@ -101,9 +165,23 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
     // 由于JWT是无状态的，服务端不需要做特殊处理
     // 客户端需要删除本地存储的token
-    res.status(200).json({ message: '登出成功' });
+    
+    // 返回标准响应格式
+    const response: ApiResponse = {
+      success: true,
+      message: '登出成功'
+    };
+    
+    res.status(200).json(response);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || '服务器错误' });
+    // 错误响应
+    const response: ApiResponse = {
+      success: false,
+      message: '登出失败',
+      errors: [{ type: 'auth', message: error.message || '服务器错误' }]
+    };
+    
+    res.status(500).json(response);
   }
 };
 
@@ -115,9 +193,14 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
 export const getCurrentUser = async (req: Request, res: Response): Promise<void> => {
   try {
     // 确保req.user存在且有id属性
-
     if (!req.user || !req.user.id) {
-      res.status(401).json({ message: '未授权' });
+      const response: ApiResponse = {
+        success: false,
+        message: '未授权',
+        errors: [{ type: 'auth', message: '用户未登录或会话已过期' }]
+      };
+      
+      res.status(401).json(response);
       return;
     }
     
@@ -126,9 +209,23 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
     // 调用服务层处理业务逻辑
     const user = await userService.getUserById(userId);
     
-    res.status(200).json({ user });
+    // 返回标准响应格式
+    const response: ApiResponse = {
+      success: true,
+      message: '获取用户信息成功',
+      data: { user }
+    };
+    
+    res.status(200).json(response);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || '服务器错误' });
+    // 错误响应
+    const response: ApiResponse = {
+      success: false,
+      message: '获取用户信息失败',
+      errors: [{ type: 'auth', message: error.message || '服务器错误' }]
+    };
+    
+    res.status(500).json(response);
   }
 };
 
@@ -141,7 +238,13 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
   try {
     // 确保req.user存在且有id属性
     if (!req.user || !req.user.id) {
-      res.status(401).json({ message: '未授权' });
+      const response: ApiResponse = {
+        success: false,
+        message: '未授权',
+        errors: [{ type: 'auth', message: '用户未登录或会话已过期' }]
+      };
+      
+      res.status(401).json(response);
       return;
     }
     
@@ -150,14 +253,26 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
     const { username, email, avatar } = req.body;
     
     // 调用服务层处理业务逻辑
-    const user = await userService.updateUserProfile(userId, { username, email, avatar });
+    const result = await userService.updateUserProfile(userId, { username, email, avatar });
     
-    res.status(200).json({
+    // 返回标准响应格式
+    const response: ApiResponse = {
+      success: true,
       message: '资料更新成功',
-      user
-    });
+      data: { user: result.user }
+    };
+    
+    res.status(200).json(response);
   } catch (error: any) {
-    res.status(400).json({ message: error.message || '更新失败' });
+    // 错误响应
+    const statusCode = error.message.includes('已存在') ? 409 : 400;
+    const response: ApiResponse = {
+      success: false,
+      message: '资料更新失败',
+      errors: [{ type: 'profile', message: error.message || '更新失败' }]
+    };
+    
+    res.status(statusCode).json(response);
   }
 };
 
@@ -170,7 +285,13 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
   try {
     // 确保req.user存在且有id属性
     if (!req.user || !req.user.id) {
-      res.status(401).json({ message: '未授权' });
+      const response: ApiResponse = {
+        success: false,
+        message: '未授权',
+        errors: [{ type: 'auth', message: '用户未登录或会话已过期' }]
+      };
+      
+      res.status(401).json(response);
       return;
     }
     
@@ -179,11 +300,24 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
     const { currentPassword, newPassword } = req.body;
     
     // 调用服务层处理业务逻辑
-    await userService.changeUserPassword(userId, currentPassword, newPassword);
+    const result = await userService.changeUserPassword(userId, currentPassword, newPassword);
     
-    res.status(200).json({ message: '密码修改成功' });
+    // 返回标准响应格式
+    const response: ApiResponse = {
+      success: true,
+      message: result.message || '密码修改成功'
+    };
+    
+    res.status(200).json(response);
   } catch (error: any) {
-    res.status(400).json({ message: error.message || '密码修改失败' });
+    // 错误响应
+    const response: ApiResponse = {
+      success: false,
+      message: '密码修改失败',
+      errors: [{ type: 'password', message: error.message || '密码修改失败' }]
+    };
+    
+    res.status(400).json(response);
   }
 };
 

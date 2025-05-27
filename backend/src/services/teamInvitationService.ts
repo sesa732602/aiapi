@@ -2,8 +2,9 @@
  * 团队邀请服务
  * 处理团队邀请相关的业务逻辑
  */
-import { LessThan } from 'typeorm';
+import { LessThan, In } from 'typeorm';
 import { TeamInvitation, InvitationStatus } from '../models/TeamInvitation';
+import { TeamMemberRole } from '../models/TeamMember';
 
 // 使用动态导入避免循环依赖
 const getTeamModel = async () => {
@@ -28,7 +29,7 @@ export const createInvitation = async (
   teamId: number,
   inviterId: number,
   inviteeEmail: string,
-  role: 'admin' | 'member',
+  role: TeamMemberRole,
   message?: string
 ) => {
   const Team = await getTeamModel();
@@ -78,12 +79,16 @@ export const createInvitation = async (
   invitation.inviterId = inviterId;
   invitation.inviteeId = invitee.id;
   invitation.role = role;
-  invitation.message = message;
+  invitation.message = message || ''; // 确保message不为undefined
+  invitation.status = InvitationStatus.PENDING; // 显式初始化状态
   
   // 设置过期时间（7天后）
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
   invitation.expiresAt = expiresAt;
+  
+  // 初始化其他必要字段
+  invitation.respondedAt = null;
   
   await invitation.save();
   
@@ -125,8 +130,9 @@ export const getUserInvitations = async (userId: number) => {
   const expiredInvitations = invitations.filter(inv => inv.expiresAt < now);
   
   if (expiredInvitations.length > 0) {
+    const expiredIds = expiredInvitations.map(inv => inv.id);
     await TeamInvitation.update(
-      { id: expiredInvitations.map(inv => inv.id) },
+      { id: In(expiredIds) }, // 使用In操作符修复类型错误
       { status: InvitationStatus.EXPIRED }
     );
   }
@@ -138,8 +144,8 @@ export const getUserInvitations = async (userId: number) => {
   const teamIds = [...new Set(validInvitations.map(inv => inv.teamId))];
   const inviterIds = [...new Set(validInvitations.map(inv => inv.inviterId))];
   
-  const teams = await Team.find({ where: { id: teamIds } });
-  const inviters = await User.find({ where: { id: inviterIds } });
+  const teams = await Team.find({ where: { id: In(teamIds) } }); // 使用In操作符修复类型错误
+  const inviters = await User.find({ where: { id: In(inviterIds) } }); // 使用In操作符修复类型错误
   
   return validInvitations.map(invitation => {
     const team = teams.find(t => t.id === invitation.teamId);
@@ -190,8 +196,9 @@ export const getTeamInvitations = async (teamId: number, currentUserId: number) 
   const expiredInvitations = invitations.filter(inv => inv.expiresAt < now);
   
   if (expiredInvitations.length > 0) {
+    const expiredIds = expiredInvitations.map(inv => inv.id);
     await TeamInvitation.update(
-      { id: expiredInvitations.map(inv => inv.id) },
+      { id: In(expiredIds) }, // 使用In操作符修复类型错误
       { status: InvitationStatus.EXPIRED }
     );
   }
@@ -207,7 +214,7 @@ export const getTeamInvitations = async (teamId: number, currentUserId: number) 
     ])
   ];
   
-  const users = await User.find({ where: { id: userIds } });
+  const users = await User.find({ where: { id: In(userIds) } }); // 使用In操作符修复类型错误
   
   return validInvitations.map(invitation => {
     const invitee = users.find(u => u.id === invitation.inviteeId);
@@ -276,7 +283,7 @@ export const acceptInvitation = async (invitationId: number, userId: number) => 
   const teamMember = new TeamMember();
   teamMember.teamId = invitation.teamId;
   teamMember.userId = userId;
-  teamMember.role = invitation.role;
+  teamMember.role = invitation.role as TeamMemberRole; // 类型转换确保兼容
   await teamMember.save();
   
   return {

@@ -9,80 +9,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.rechargeUserQuota = exports.getUserQuotas = exports.getUserCallStats = exports.getApiCallStats = exports.recordApiCall = void 0;
-const ApiCall_1 = require("../models/ApiCall");
-const Api_1 = require("../models/Api");
-const UserQuota_1 = require("../models/UserQuota");
-const User_1 = require("../models/User");
+exports.updateUserQuota = exports.getUserQuota = exports.getUserCallStats = exports.recordApiCall = exports.getApiPerformanceStats = exports.getApiUsageStats = exports.getUserGrowthStats = exports.getRevenueStats = exports.getApiCallStats = void 0;
 const typeorm_1 = require("typeorm");
-/**
- * 记录API调用
- * @param req 请求对象
- * @param res 响应对象
- */
-const recordApiCall = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { apiId, responseTime, statusCode, requestSize, responseSize } = req.body;
-        const userId = req.user.id;
-        // 检查API是否存在
-        const apiIdNum = parseInt(apiId, 10);
-        const api = yield Api_1.Api.findOne({ where: { id: apiIdNum } });
-        if (!api) {
-            res.status(404).json({ message: 'API不存在' });
-            return;
-        }
-        // 检查用户额度
-        const userQuota = yield UserQuota_1.UserQuota.findOne({ where: { userId, apiId: apiIdNum } });
-        if (!userQuota) {
-            res.status(403).json({ message: '用户没有该API的调用权限' });
-            return;
-        }
-        // 检查调用次数限制
-        if (userQuota.callsUsed >= userQuota.callLimit) {
-            res.status(403).json({ message: '已达到API调用次数上限' });
-            return;
-        }
-        // 检查并发限制
-        const oneMinuteAgo = new Date(Date.now() - 60000); // 最近1分钟
-        const currentConcurrency = yield ApiCall_1.ApiCall.count({
-            where: {
-                userId,
-                apiId: apiIdNum,
-                startTime: (0, typeorm_1.MoreThan)(oneMinuteAgo)
-            }
-        });
-        if (currentConcurrency >= userQuota.concurrencyLimit) {
-            res.status(429).json({ message: '已达到API并发调用上限' });
-            return;
-        }
-        // 检查额度是否过期
-        if (userQuota.expiresAt && userQuota.expiresAt < new Date()) {
-            res.status(403).json({ message: 'API调用权限已过期' });
-            return;
-        }
-        // 记录API调用
-        const apiCall = new ApiCall_1.ApiCall();
-        apiCall.userId = userId;
-        apiCall.apiId = apiIdNum;
-        apiCall.startTime = new Date();
-        apiCall.responseTime = responseTime;
-        apiCall.statusCode = statusCode;
-        apiCall.requestSize = requestSize;
-        apiCall.responseSize = responseSize;
-        yield apiCall.save();
-        // 更新用户额度
-        userQuota.callsUsed += 1;
-        yield userQuota.save();
-        res.status(201).json({
-            message: 'API调用记录成功',
-            remainingCalls: userQuota.callLimit - userQuota.callsUsed
-        });
-    }
-    catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
-    }
-});
-exports.recordApiCall = recordApiCall;
+const Api_1 = require("../models/Api");
+const ApiCall_1 = require("../models/ApiCall");
+const Order_1 = require("../models/Order");
+const TeamMember_1 = require("../models/TeamMember");
+const UserQuota_1 = require("../models/UserQuota");
 /**
  * 获取API调用统计
  * @param req 请求对象
@@ -90,74 +23,491 @@ exports.recordApiCall = recordApiCall;
  */
 const getApiCallStats = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const apiId = parseInt(req.params.apiId, 10);
-        const { startDate, endDate } = req.query;
+        if (!req.user) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
         const userId = req.user.id;
+        const { apiId, period = 'day', startDate, endDate } = req.query;
+        // 构建查询条件
+        const queryBuilder = (0, typeorm_1.getRepository)(ApiCall_1.ApiCall)
+            .createQueryBuilder('apiCall');
+        // 如果指定了API ID，则只查询该API的调用记录
+        if (apiId) {
+            const apiIdNum = parseInt(apiId, 10);
+            queryBuilder.where('apiCall.apiId = :apiId', { apiId: apiIdNum });
+            // 检查用户是否有权限查看该API的统计信息
+            const api = yield Api_1.Api.findOne({ where: { id: apiIdNum } });
+            if (!api) {
+                res.status(404).json({ message: 'API不存在' });
+                return;
+            }
+            // 检查用户是否是API所有者或团队成员
+            if (api.ownerId !== userId) {
+                // 如果teamId为null，则不需要查询团队成员
+                if (api.teamId !== null) {
+                    const teamMember = yield TeamMember_1.TeamMember.findOne({
+                        where: {
+                            userId,
+                            teamId: api.teamId
+                        }
+                    });
+                    if (!teamMember && req.user.role !== 'admin') {
+                        res.status(403).json({ message: '无权查看此API的统计信息' });
+                        return;
+                    }
+                }
+                else if (req.user.role !== 'admin') {
+                    res.status(403).json({ message: '无权查看此API的统计信息' });
+                    return;
+                }
+            }
+        }
+        else {
+            // 如果没有指定API ID，则查询用户有权限查看的所有API的调用记录
+            const userApis = yield Api_1.Api.find({ where: { ownerId: userId } });
+            const userApiIds = userApis.map(api => api.id);
+            // 获取用户所在团队的API
+            const teamMemberships = yield TeamMember_1.TeamMember.find({ where: { userId } });
+            const teamIds = teamMemberships.map(tm => tm.teamId).filter(id => id !== null);
+            if (teamIds.length > 0) {
+                const teamApis = yield Api_1.Api.find({ where: { teamId: (0, typeorm_1.In)(teamIds) } });
+                userApiIds.push(...teamApis.map(api => api.id));
+            }
+            if (userApiIds.length > 0) {
+                queryBuilder.where('apiCall.apiId IN (:...apiIds)', { apiIds: userApiIds });
+            }
+            else {
+                // 用户没有任何API
+                res.status(200).json({ stats: [] });
+                return;
+            }
+        }
+        // 添加日期范围过滤
+        if (startDate) {
+            queryBuilder.andWhere('apiCall.createdAt >= :startDate', { startDate });
+        }
+        if (endDate) {
+            queryBuilder.andWhere('apiCall.createdAt <= :endDate', { endDate });
+        }
+        // 根据时间周期分组
+        let timeFormat;
+        switch (period) {
+            case 'hour':
+                timeFormat = '%Y-%m-%d %H:00:00';
+                break;
+            case 'day':
+                timeFormat = '%Y-%m-%d';
+                break;
+            case 'week':
+                timeFormat = '%Y-%u'; // ISO week number
+                break;
+            case 'month':
+                timeFormat = '%Y-%m';
+                break;
+            case 'year':
+                timeFormat = '%Y';
+                break;
+            default:
+                timeFormat = '%Y-%m-%d';
+        }
+        queryBuilder
+            .select(`DATE_FORMAT(apiCall.createdAt, '${timeFormat}')`, 'time')
+            .addSelect('COUNT(*)', 'count')
+            .addSelect('apiCall.apiId', 'apiId')
+            .addSelect('apiCall.status', 'status')
+            .groupBy('time, apiId, status')
+            .orderBy('time', 'ASC');
+        const stats = yield queryBuilder.getRawMany();
+        // 获取API名称
+        const apiIds = [...new Set(stats.map(stat => stat.apiId))];
+        const apis = yield Api_1.Api.find({ where: { id: (0, typeorm_1.In)(apiIds) } });
+        const apiMap = apis.reduce((map, api) => {
+            map[api.id] = api.name;
+            return map;
+        }, {});
+        // 格式化结果
+        const formattedStats = stats.map(stat => ({
+            time: stat.time,
+            apiId: stat.apiId,
+            apiName: apiMap[stat.apiId] || 'Unknown API',
+            status: stat.status,
+            count: parseInt(stat.count, 10)
+        }));
+        res.status(200).json({ stats: formattedStats });
+    }
+    catch (error) {
+        res.status(500).json({ message: '服务器错误', error: error.message });
+    }
+});
+exports.getApiCallStats = getApiCallStats;
+/**
+ * 获取收入统计
+ * @param req 请求对象
+ * @param res 响应对象
+ */
+const getRevenueStats = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
+        const userId = req.user.id;
+        // 检查用户是否为管理员
+        if (req.user.role !== 'admin') {
+            res.status(403).json({ message: '无权查看收入统计' });
+            return;
+        }
+        const { period = 'month', startDate, endDate } = req.query;
+        // 构建查询条件
+        const queryBuilder = (0, typeorm_1.getRepository)(Order_1.Order)
+            .createQueryBuilder('order')
+            .where('order.status = :status', { status: 'completed' });
+        // 添加日期范围过滤
+        if (startDate) {
+            queryBuilder.andWhere('order.createdAt >= :startDate', { startDate });
+        }
+        if (endDate) {
+            queryBuilder.andWhere('order.createdAt <= :endDate', { endDate });
+        }
+        // 根据时间周期分组
+        let timeFormat;
+        switch (period) {
+            case 'day':
+                timeFormat = '%Y-%m-%d';
+                break;
+            case 'week':
+                timeFormat = '%Y-%u'; // ISO week number
+                break;
+            case 'month':
+                timeFormat = '%Y-%m';
+                break;
+            case 'year':
+                timeFormat = '%Y';
+                break;
+            default:
+                timeFormat = '%Y-%m';
+        }
+        queryBuilder
+            .select(`DATE_FORMAT(order.createdAt, '${timeFormat}')`, 'time')
+            .addSelect('SUM(order.amount)', 'revenue')
+            .addSelect('COUNT(*)', 'count')
+            .groupBy('time')
+            .orderBy('time', 'ASC');
+        const stats = yield queryBuilder.getRawMany();
+        // 格式化结果
+        const formattedStats = stats.map(stat => ({
+            time: stat.time,
+            revenue: parseFloat(stat.revenue),
+            count: parseInt(stat.count, 10)
+        }));
+        res.status(200).json({ stats: formattedStats });
+    }
+    catch (error) {
+        res.status(500).json({ message: '服务器错误', error: error.message });
+    }
+});
+exports.getRevenueStats = getRevenueStats;
+/**
+ * 获取用户增长统计
+ * @param req 请求对象
+ * @param res 响应对象
+ */
+const getUserGrowthStats = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
+        const userId = req.user.id;
+        // 检查用户是否为管理员
+        if (req.user.role !== 'admin') {
+            res.status(403).json({ message: '无权查看用户增长统计' });
+            return;
+        }
+        const { period = 'month', startDate, endDate } = req.query;
+        // 构建查询条件
+        const queryBuilder = (0, typeorm_1.getRepository)('User')
+            .createQueryBuilder('user');
+        // 添加日期范围过滤
+        if (startDate) {
+            queryBuilder.where('user.createdAt >= :startDate', { startDate });
+        }
+        if (endDate) {
+            queryBuilder.andWhere('user.createdAt <= :endDate', { endDate });
+        }
+        // 根据时间周期分组
+        let timeFormat;
+        switch (period) {
+            case 'day':
+                timeFormat = '%Y-%m-%d';
+                break;
+            case 'week':
+                timeFormat = '%Y-%u'; // ISO week number
+                break;
+            case 'month':
+                timeFormat = '%Y-%m';
+                break;
+            case 'year':
+                timeFormat = '%Y';
+                break;
+            default:
+                timeFormat = '%Y-%m';
+        }
+        queryBuilder
+            .select(`DATE_FORMAT(user.createdAt, '${timeFormat}')`, 'time')
+            .addSelect('COUNT(*)', 'count')
+            .groupBy('time')
+            .orderBy('time', 'ASC');
+        const stats = yield queryBuilder.getRawMany();
+        // 计算累计用户数
+        let cumulativeCount = 0;
+        const formattedStats = stats.map(stat => {
+            cumulativeCount += parseInt(stat.count, 10);
+            return {
+                time: stat.time,
+                newUsers: parseInt(stat.count, 10),
+                totalUsers: cumulativeCount
+            };
+        });
+        res.status(200).json({ stats: formattedStats });
+    }
+    catch (error) {
+        res.status(500).json({ message: '服务器错误', error: error.message });
+    }
+});
+exports.getUserGrowthStats = getUserGrowthStats;
+/**
+ * 获取API使用情况统计
+ * @param req 请求对象
+ * @param res 响应对象
+ */
+const getApiUsageStats = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
+        const userId = req.user.id;
+        const { apiId } = req.params;
+        const apiIdNum = parseInt(apiId, 10);
+        const { period = 'day', startDate, endDate } = req.query;
         // 检查API是否存在
-        const api = yield Api_1.Api.findOne({ where: { id: apiId } });
+        const api = yield Api_1.Api.findOne({ where: { id: apiIdNum } });
         if (!api) {
             res.status(404).json({ message: 'API不存在' });
             return;
         }
-        // 检查用户是否有权限查看该API的调用统计
-        if (req.user.role !== 'super_admin' && api.createdBy !== userId) {
-            res.status(403).json({ message: '无权查看该API的调用统计' });
-            return;
-        }
-        let whereClause = { apiId };
-        if (startDate && endDate) {
-            whereClause.startTime = (0, typeorm_1.Between)(new Date(startDate), new Date(endDate));
-        }
-        // 获取API调用记录
-        const apiCalls = yield ApiCall_1.ApiCall.find({ where: whereClause });
-        // 计算统计数据
-        const totalCalls = apiCalls.length;
-        const successCalls = apiCalls.filter(call => call.statusCode >= 200 && call.statusCode < 300).length;
-        const errorCalls = totalCalls - successCalls;
-        const avgResponseTime = apiCalls.reduce((sum, call) => sum + call.responseTime, 0) / totalCalls || 0;
-        // 按用户分组统计
-        const userCallsMap = {};
-        for (const call of apiCalls) {
-            const userIdStr = call.userId.toString();
-            if (!userCallsMap[userIdStr]) {
-                userCallsMap[userIdStr] = 0;
+        // 检查用户是否有权限查看该API的统计信息
+        if (api.ownerId !== userId) {
+            // 如果teamId为null，则不需要查询团队成员
+            if (api.teamId !== null) {
+                const teamMember = yield TeamMember_1.TeamMember.findOne({
+                    where: {
+                        userId,
+                        teamId: api.teamId
+                    }
+                });
+                if (!teamMember && req.user.role !== 'admin') {
+                    res.status(403).json({ message: '无权查看此API的统计信息' });
+                    return;
+                }
             }
-            userCallsMap[userIdStr] += 1;
-        }
-        // 获取用户名称
-        const userCalls = yield Promise.all(Object.entries(userCallsMap).map((_a) => __awaiter(void 0, [_a], void 0, function* ([userIdStr, calls]) {
-            const userId = parseInt(userIdStr, 10);
-            const user = yield User_1.User.findOne({ where: { id: userId } });
-            return {
-                userId,
-                username: (user === null || user === void 0 ? void 0 : user.username) || 'Unknown User',
-                calls
-            };
-        })));
-        // 按天统计
-        const dailyStats = {};
-        for (const call of apiCalls) {
-            const dateStr = call.startTime.toISOString().split('T')[0];
-            if (!dailyStats[dateStr]) {
-                dailyStats[dateStr] = 0;
+            else if (req.user.role !== 'admin') {
+                res.status(403).json({ message: '无权查看此API的统计信息' });
+                return;
             }
-            dailyStats[dateStr] += 1;
         }
+        // 构建查询条件
+        const queryBuilder = (0, typeorm_1.getRepository)(ApiCall_1.ApiCall)
+            .createQueryBuilder('apiCall')
+            .where('apiCall.apiId = :apiId', { apiId: apiIdNum });
+        // 添加日期范围过滤
+        if (startDate) {
+            queryBuilder.andWhere('apiCall.createdAt >= :startDate', { startDate });
+        }
+        if (endDate) {
+            queryBuilder.andWhere('apiCall.createdAt <= :endDate', { endDate });
+        }
+        // 根据时间周期分组
+        let timeFormat;
+        switch (period) {
+            case 'hour':
+                timeFormat = '%Y-%m-%d %H:00:00';
+                break;
+            case 'day':
+                timeFormat = '%Y-%m-%d';
+                break;
+            case 'week':
+                timeFormat = '%Y-%u'; // ISO week number
+                break;
+            case 'month':
+                timeFormat = '%Y-%m';
+                break;
+            case 'year':
+                timeFormat = '%Y';
+                break;
+            default:
+                timeFormat = '%Y-%m-%d';
+        }
+        queryBuilder
+            .select(`DATE_FORMAT(apiCall.createdAt, '${timeFormat}')`, 'time')
+            .addSelect('COUNT(*)', 'count')
+            .addSelect('apiCall.status', 'status')
+            .addSelect('AVG(apiCall.responseTime)', 'avgResponseTime')
+            .addSelect('MAX(apiCall.responseTime)', 'maxResponseTime')
+            .addSelect('MIN(apiCall.responseTime)', 'minResponseTime')
+            .groupBy('time, status')
+            .orderBy('time', 'ASC');
+        const stats = yield queryBuilder.getRawMany();
+        // 格式化结果
+        const formattedStats = stats.map(stat => ({
+            time: stat.time,
+            status: stat.status,
+            count: parseInt(stat.count, 10),
+            avgResponseTime: parseFloat(stat.avgResponseTime),
+            maxResponseTime: parseFloat(stat.maxResponseTime),
+            minResponseTime: parseFloat(stat.minResponseTime)
+        }));
         res.status(200).json({
-            totalCalls,
-            successCalls,
-            errorCalls,
-            successRate: totalCalls > 0 ? (successCalls / totalCalls) * 100 : 0,
-            avgResponseTime,
-            userCalls,
-            dailyStats: Object.entries(dailyStats).map(([date, calls]) => ({ date, calls }))
+            apiId,
+            apiName: api.name,
+            stats: formattedStats
         });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(500).json({ message: '服务器错误', error: error.message });
     }
 });
-exports.getApiCallStats = getApiCallStats;
+exports.getApiUsageStats = getApiUsageStats;
+/**
+ * 获取API性能统计
+ * @param req 请求对象
+ * @param res 响应对象
+ */
+const getApiPerformanceStats = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
+        const userId = req.user.id;
+        const { apiId } = req.params;
+        const apiIdNum = parseInt(apiId, 10);
+        // 检查API是否存在
+        const api = yield Api_1.Api.findOne({ where: { id: apiIdNum } });
+        if (!api) {
+            res.status(404).json({ message: 'API不存在' });
+            return;
+        }
+        // 检查用户是否有权限查看该API的统计信息
+        if (api.ownerId !== userId) {
+            // 如果teamId为null，则不需要查询团队成员
+            if (api.teamId !== null) {
+                const teamMember = yield TeamMember_1.TeamMember.findOne({
+                    where: {
+                        userId,
+                        teamId: api.teamId
+                    }
+                });
+                if (!teamMember && req.user.role !== 'admin') {
+                    res.status(403).json({ message: '无权查看此API的统计信息' });
+                    return;
+                }
+            }
+            else if (req.user.role !== 'admin') {
+                res.status(403).json({ message: '无权查看此API的统计信息' });
+                return;
+            }
+        }
+        // 获取最近24小时的调用记录
+        const oneDayAgo = new Date();
+        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+        const recentCalls = yield ApiCall_1.ApiCall.find({
+            where: {
+                apiId: apiIdNum,
+                createdAt: (0, typeorm_1.MoreThanOrEqual)(oneDayAgo)
+            },
+            order: { createdAt: 'DESC' }
+        });
+        // 计算性能指标
+        const totalCalls = recentCalls.length;
+        const successCalls = recentCalls.filter(call => call.status === 200).length;
+        const errorCalls = totalCalls - successCalls;
+        const successRate = totalCalls > 0 ? (successCalls / totalCalls) * 100 : 0;
+        // 计算响应时间统计
+        let totalResponseTime = 0;
+        let maxResponseTime = 0;
+        let minResponseTime = recentCalls.length > 0 ? recentCalls[0].responseTime : 0;
+        recentCalls.forEach(call => {
+            totalResponseTime += call.responseTime;
+            maxResponseTime = Math.max(maxResponseTime, call.responseTime);
+            minResponseTime = Math.min(minResponseTime, call.responseTime);
+        });
+        const avgResponseTime = totalCalls > 0 ? totalResponseTime / totalCalls : 0;
+        // 计算每小时调用量
+        const hourlyStats = Array(24).fill(0);
+        const now = new Date();
+        recentCalls.forEach(call => {
+            const callTime = new Date(call.createdAt);
+            const hoursAgo = Math.floor((now.getTime() - callTime.getTime()) / (1000 * 60 * 60));
+            if (hoursAgo >= 0 && hoursAgo < 24) {
+                hourlyStats[hoursAgo]++;
+            }
+        });
+        // 反转数组，使索引0表示24小时前，索引23表示当前小时
+        hourlyStats.reverse();
+        res.status(200).json({
+            apiId,
+            apiName: api.name,
+            totalCalls,
+            successCalls,
+            errorCalls,
+            successRate,
+            avgResponseTime,
+            maxResponseTime,
+            minResponseTime,
+            hourlyStats
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: '服务器错误', error: error.message });
+    }
+});
+exports.getApiPerformanceStats = getApiPerformanceStats;
+/**
+ * 记录API调用
+ * @param req 请求对象
+ * @param res 响应对象
+ */
+const recordApiCall = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { apiId, userId, status, responseTime, requestData, responseData } = req.body;
+        // 验证必填字段
+        if (!apiId || !status) {
+            res.status(400).json({ message: '缺少必要参数' });
+            return;
+        }
+        // 创建API调用记录
+        const apiCall = new ApiCall_1.ApiCall();
+        apiCall.apiId = parseInt(apiId, 10);
+        apiCall.userId = userId ? parseInt(userId, 10) : null;
+        apiCall.status = status;
+        apiCall.responseTime = responseTime || 0;
+        apiCall.requestData = requestData || null;
+        apiCall.responseData = responseData || null;
+        apiCall.startTime = new Date();
+        yield apiCall.save();
+        res.status(201).json({
+            message: 'API调用记录已保存',
+            id: apiCall.id
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: '服务器错误', error: error.message });
+    }
+});
+exports.recordApiCall = recordApiCall;
 /**
  * 获取用户调用统计
  * @param req 请求对象
@@ -165,59 +515,71 @@ exports.getApiCallStats = getApiCallStats;
  */
 const getUserCallStats = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        if (!req.user) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
         const userId = req.user.id;
-        const { startDate, endDate } = req.query;
-        let whereClause = { userId };
-        if (startDate && endDate) {
-            whereClause.startTime = (0, typeorm_1.Between)(new Date(startDate), new Date(endDate));
+        const { period = 'day', startDate, endDate } = req.query;
+        // 构建查询条件
+        const queryBuilder = (0, typeorm_1.getRepository)(ApiCall_1.ApiCall)
+            .createQueryBuilder('apiCall')
+            .where('apiCall.userId = :userId', { userId });
+        // 添加日期范围过滤
+        if (startDate) {
+            queryBuilder.andWhere('apiCall.createdAt >= :startDate', { startDate });
         }
-        // 获取用户API调用记录
-        const apiCalls = yield ApiCall_1.ApiCall.find({ where: whereClause });
-        // 计算统计数据
-        const totalCalls = apiCalls.length;
-        const successCalls = apiCalls.filter(call => call.statusCode >= 200 && call.statusCode < 300).length;
-        const errorCalls = totalCalls - successCalls;
-        const avgResponseTime = apiCalls.reduce((sum, call) => sum + call.responseTime, 0) / totalCalls || 0;
-        // 按API分组统计
-        const apiCallsMap = {};
-        for (const call of apiCalls) {
-            const apiIdStr = call.apiId.toString();
-            if (!apiCallsMap[apiIdStr]) {
-                apiCallsMap[apiIdStr] = 0;
-            }
-            apiCallsMap[apiIdStr] += 1;
+        if (endDate) {
+            queryBuilder.andWhere('apiCall.createdAt <= :endDate', { endDate });
         }
+        // 根据时间周期分组
+        let timeFormat;
+        switch (period) {
+            case 'hour':
+                timeFormat = '%Y-%m-%d %H:00:00';
+                break;
+            case 'day':
+                timeFormat = '%Y-%m-%d';
+                break;
+            case 'week':
+                timeFormat = '%Y-%u'; // ISO week number
+                break;
+            case 'month':
+                timeFormat = '%Y-%m';
+                break;
+            case 'year':
+                timeFormat = '%Y';
+                break;
+            default:
+                timeFormat = '%Y-%m-%d';
+        }
+        queryBuilder
+            .select(`DATE_FORMAT(apiCall.createdAt, '${timeFormat}')`, 'time')
+            .addSelect('COUNT(*)', 'count')
+            .addSelect('apiCall.apiId', 'apiId')
+            .addSelect('apiCall.status', 'status')
+            .groupBy('time, apiId, status')
+            .orderBy('time', 'ASC');
+        const stats = yield queryBuilder.getRawMany();
         // 获取API名称
-        const apiCallStats = yield Promise.all(Object.entries(apiCallsMap).map((_a) => __awaiter(void 0, [_a], void 0, function* ([apiIdStr, calls]) {
-            const apiId = parseInt(apiIdStr, 10);
-            const api = yield Api_1.Api.findOne({ where: { id: apiId } });
-            return {
-                apiId,
-                apiName: (api === null || api === void 0 ? void 0 : api.name) || 'Unknown API',
-                calls
-            };
-        })));
-        // 按天统计
-        const dailyStats = {};
-        for (const call of apiCalls) {
-            const dateStr = call.startTime.toISOString().split('T')[0];
-            if (!dailyStats[dateStr]) {
-                dailyStats[dateStr] = 0;
-            }
-            dailyStats[dateStr] += 1;
-        }
-        res.status(200).json({
-            totalCalls,
-            successCalls,
-            errorCalls,
-            successRate: totalCalls > 0 ? (successCalls / totalCalls) * 100 : 0,
-            avgResponseTime,
-            apiCallStats,
-            dailyStats: Object.entries(dailyStats).map(([date, calls]) => ({ date, calls }))
-        });
+        const apiIds = [...new Set(stats.map(stat => stat.apiId))];
+        const apis = yield Api_1.Api.find({ where: { id: (0, typeorm_1.In)(apiIds) } });
+        const apiMap = apis.reduce((map, api) => {
+            map[api.id] = api.name;
+            return map;
+        }, {});
+        // 格式化结果
+        const formattedStats = stats.map(stat => ({
+            time: stat.time,
+            apiId: stat.apiId,
+            apiName: apiMap[stat.apiId] || 'Unknown API',
+            status: stat.status,
+            count: parseInt(stat.count, 10)
+        }));
+        res.status(200).json({ stats: formattedStats });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(500).json({ message: '服务器错误', error: error.message });
     }
 });
 exports.getUserCallStats = getUserCallStats;
@@ -226,75 +588,123 @@ exports.getUserCallStats = getUserCallStats;
  * @param req 请求对象
  * @param res 响应对象
  */
-const getUserQuotas = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getUserQuota = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const userId = req.user.id;
-        // 获取用户额度
-        const quotas = yield UserQuota_1.UserQuota.find({ where: { userId } });
-        // 获取API名称
-        const quotaDetails = yield Promise.all(quotas.map((quota) => __awaiter(void 0, void 0, void 0, function* () {
-            const api = yield Api_1.Api.findOne({ where: { id: quota.apiId } });
-            return Object.assign(Object.assign({}, quota), { apiName: (api === null || api === void 0 ? void 0 : api.name) || 'Unknown API', remainingCalls: quota.callLimit - quota.callsUsed, isExpired: quota.expiresAt ? quota.expiresAt < new Date() : false });
-        })));
-        res.status(200).json(quotaDetails);
-    }
-    catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
-    }
-});
-exports.getUserQuotas = getUserQuotas;
-/**
- * 充值用户额度
- * @param req 请求对象
- * @param res 响应对象
- */
-const rechargeUserQuota = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { userId, apiId, callLimit, concurrencyLimit, validityDays } = req.body;
-        // 检查用户是否存在
-        const userIdNum = parseInt(userId, 10);
-        const user = yield User_1.User.findOne({ where: { id: userIdNum } });
-        if (!user) {
-            res.status(404).json({ message: '用户不存在' });
+        if (!req.user) {
+            res.status(401).json({ message: '未授权' });
             return;
         }
-        // 检查API是否存在
+        const userId = req.user.id;
+        const { apiId } = req.params;
         const apiIdNum = parseInt(apiId, 10);
+        // 检查API是否存在
         const api = yield Api_1.Api.findOne({ where: { id: apiIdNum } });
         if (!api) {
             res.status(404).json({ message: 'API不存在' });
             return;
         }
         // 获取用户额度
-        let userQuota = yield UserQuota_1.UserQuota.findOne({ where: { userId: userIdNum, apiId: apiIdNum } });
-        if (!userQuota) {
-            // 创建新的用户额度记录
-            userQuota = new UserQuota_1.UserQuota();
-            userQuota.userId = userIdNum;
-            userQuota.apiId = apiIdNum;
-            userQuota.callLimit = callLimit;
-            userQuota.callsUsed = 0;
-            userQuota.concurrencyLimit = concurrencyLimit;
-            userQuota.expiresAt = new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000);
-        }
-        else {
-            // 更新现有额度
-            userQuota.callLimit += callLimit;
-            userQuota.concurrencyLimit = Math.max(userQuota.concurrencyLimit, concurrencyLimit);
-            // 更新过期时间，取较晚的时间
-            const newExpiresAt = new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000);
-            if (!userQuota.expiresAt || userQuota.expiresAt < newExpiresAt) {
-                userQuota.expiresAt = newExpiresAt;
+        const quota = yield UserQuota_1.UserQuota.findOne({
+            where: {
+                userId,
+                apiId: apiIdNum
             }
+        });
+        if (!quota) {
+            res.status(404).json({ message: '未找到额度信息' });
+            return;
         }
-        yield userQuota.save();
+        // 计算剩余调用次数
+        const remainingCalls = quota.callLimit - quota.callsUsed;
         res.status(200).json({
-            message: '用户额度充值成功',
-            quota: Object.assign(Object.assign({}, userQuota), { apiName: api.name, remainingCalls: userQuota.callLimit - userQuota.callsUsed })
+            apiId,
+            apiName: api.name,
+            callLimit: quota.callLimit,
+            callsUsed: quota.callsUsed,
+            remainingCalls,
+            totalCalls: quota.callLimit,
+            concurrencyLimit: quota.concurrencyLimit,
+            expiresAt: quota.expiresAt
         });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(500).json({ message: '服务器错误', error: error.message });
     }
 });
-exports.rechargeUserQuota = rechargeUserQuota;
+exports.getUserQuota = getUserQuota;
+/**
+ * 更新用户额度
+ * @param req 请求对象
+ * @param res 响应对象
+ */
+const updateUserQuota = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
+        // 检查用户是否为管理员
+        if (req.user.role !== 'admin') {
+            res.status(403).json({ message: '无权更新用户额度' });
+            return;
+        }
+        const { userId, apiId, calls, expiresAt } = req.body;
+        if (!userId || !apiId || calls === undefined) {
+            res.status(400).json({ message: '缺少必要参数' });
+            return;
+        }
+        const userIdNum = parseInt(userId, 10);
+        const apiIdNum = parseInt(apiId, 10);
+        // 检查API是否存在
+        const api = yield Api_1.Api.findOne({ where: { id: apiIdNum } });
+        if (!api) {
+            res.status(404).json({ message: 'API不存在' });
+            return;
+        }
+        // 查找或创建用户额度
+        let userQuota = yield UserQuota_1.UserQuota.findOne({
+            where: {
+                userId: userIdNum,
+                apiId: apiIdNum
+            }
+        });
+        if (userQuota) {
+            // 更新现有额度
+            userQuota.callsUsed = 0;
+            userQuota.callLimit = calls;
+            userQuota.remainingCalls = calls;
+            userQuota.totalCalls = calls;
+            userQuota.expiresAt = expiresAt ? new Date(expiresAt) : userQuota.expiresAt;
+        }
+        else {
+            // 创建新额度
+            userQuota = new UserQuota_1.UserQuota();
+            userQuota.userId = userIdNum;
+            userQuota.apiId = apiIdNum;
+            userQuota.callLimit = calls;
+            userQuota.callsUsed = 0;
+            userQuota.remainingCalls = calls;
+            userQuota.totalCalls = calls;
+            userQuota.concurrencyLimit = 5; // 默认并发限制
+            userQuota.expiresAt = expiresAt ? new Date(expiresAt) : null;
+        }
+        yield userQuota.save();
+        res.status(200).json({
+            message: '用户额度已更新',
+            quota: {
+                userId: userQuota.userId,
+                apiId: userQuota.apiId,
+                callLimit: userQuota.callLimit,
+                callsUsed: userQuota.callsUsed,
+                remainingCalls: userQuota.remainingCalls,
+                totalCalls: userQuota.totalCalls,
+                concurrencyLimit: userQuota.concurrencyLimit,
+                expiresAt: userQuota.expiresAt
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: '服务器错误', error: error.message });
+    }
+});
+exports.updateUserQuota = updateUserQuota;

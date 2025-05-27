@@ -21,6 +21,10 @@ const ApiPermission_1 = require("../models/ApiPermission");
  */
 const createApiPlan = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        if (!req.user) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
         const { apiId, name, description, price, callLimit, concurrencyLimit, validityDays } = req.body;
         const userId = req.user.id;
         // 检查API是否存在
@@ -31,14 +35,14 @@ const createApiPlan = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return;
         }
         // 检查用户是否有权限创建套餐
-        if (req.user.role !== 'super_admin' && api.createdBy !== userId) {
+        if (req.user.role !== 'super_admin' && api.ownerId !== userId) {
             // 检查用户是否是API所属团队的管理员
             if (api.teamId) {
                 const teamMember = yield TeamMember_1.TeamMember.findOne({ where: { teamId: api.teamId, userId } });
                 if (!teamMember || (teamMember.role !== 'owner' && teamMember.role !== 'admin')) {
                     // 检查用户是否有API管理权限
                     const apiPermission = yield ApiPermission_1.ApiPermission.findOne({
-                        where: { apiId: apiIdNum, userId, permissionType: ApiPermission_1.ApiPermissionType.ADMIN }
+                        where: { apiId: apiIdNum, userId, permissionType: ApiPermission_1.PermissionType.ADMIN }
                     });
                     if (!apiPermission) {
                         res.status(403).json({ message: '无权创建API套餐' });
@@ -49,7 +53,7 @@ const createApiPlan = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             else {
                 // 检查用户是否有API管理权限
                 const apiPermission = yield ApiPermission_1.ApiPermission.findOne({
-                    where: { apiId: apiIdNum, userId, permissionType: ApiPermission_1.ApiPermissionType.ADMIN }
+                    where: { apiId: apiIdNum, userId, permissionType: ApiPermission_1.PermissionType.ADMIN }
                 });
                 if (!apiPermission) {
                     res.status(403).json({ message: '无权创建API套餐' });
@@ -73,7 +77,7 @@ const createApiPlan = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(500).json({ message: '服务器错误', error: error.message });
     }
 });
 exports.createApiPlan = createApiPlan;
@@ -96,7 +100,7 @@ const getApiPlans = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         res.status(200).json(plans);
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(500).json({ message: '服务器错误', error: error.message });
     }
 });
 exports.getApiPlans = getApiPlans;
@@ -119,7 +123,7 @@ const getApiPlanById = (req, res) => __awaiter(void 0, void 0, void 0, function*
         res.status(200).json(Object.assign(Object.assign({}, plan), { apiName: api === null || api === void 0 ? void 0 : api.name }));
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(500).json({ message: '服务器错误', error: error.message });
     }
 });
 exports.getApiPlanById = getApiPlanById;
@@ -130,6 +134,10 @@ exports.getApiPlanById = getApiPlanById;
  */
 const updateApiPlan = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        if (!req.user) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
         const id = parseInt(req.params.id, 10);
         const { name, description, price, callLimit, concurrencyLimit, validityDays } = req.body;
         const userId = req.user.id;
@@ -146,14 +154,14 @@ const updateApiPlan = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return;
         }
         // 检查用户是否有权限更新套餐
-        if (req.user.role !== 'super_admin' && api.createdBy !== userId) {
+        if (req.user.role !== 'super_admin' && api.ownerId !== userId) {
             // 检查用户是否是API所属团队的管理员
             if (api.teamId) {
                 const teamMember = yield TeamMember_1.TeamMember.findOne({ where: { teamId: api.teamId, userId } });
                 if (!teamMember || (teamMember.role !== 'owner' && teamMember.role !== 'admin')) {
                     // 检查用户是否有API管理权限
                     const apiPermission = yield ApiPermission_1.ApiPermission.findOne({
-                        where: { apiId: plan.apiId, userId, permissionType: ApiPermission_1.ApiPermissionType.ADMIN }
+                        where: { apiId: plan.apiId, userId, permissionType: ApiPermission_1.PermissionType.ADMIN }
                     });
                     if (!apiPermission) {
                         res.status(403).json({ message: '无权更新API套餐' });
@@ -164,7 +172,7 @@ const updateApiPlan = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             else {
                 // 检查用户是否有API管理权限
                 const apiPermission = yield ApiPermission_1.ApiPermission.findOne({
-                    where: { apiId: plan.apiId, userId, permissionType: ApiPermission_1.ApiPermissionType.ADMIN }
+                    where: { apiId: plan.apiId, userId, permissionType: ApiPermission_1.PermissionType.ADMIN }
                 });
                 if (!apiPermission) {
                     res.status(403).json({ message: '无权更新API套餐' });
@@ -198,7 +206,7 @@ const updateApiPlan = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(500).json({ message: '服务器错误', error: error.message });
     }
 });
 exports.updateApiPlan = updateApiPlan;
@@ -209,6 +217,10 @@ exports.updateApiPlan = updateApiPlan;
  */
 const deleteApiPlan = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        if (!req.user) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
         const id = parseInt(req.params.id, 10);
         const userId = req.user.id;
         // 检查套餐是否存在
@@ -224,14 +236,14 @@ const deleteApiPlan = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return;
         }
         // 检查用户是否有权限删除套餐
-        if (req.user.role !== 'super_admin' && api.createdBy !== userId) {
+        if (req.user.role !== 'super_admin' && api.ownerId !== userId) {
             // 检查用户是否是API所属团队的管理员
             if (api.teamId) {
                 const teamMember = yield TeamMember_1.TeamMember.findOne({ where: { teamId: api.teamId, userId } });
                 if (!teamMember || (teamMember.role !== 'owner' && teamMember.role !== 'admin')) {
                     // 检查用户是否有API管理权限
                     const apiPermission = yield ApiPermission_1.ApiPermission.findOne({
-                        where: { apiId: plan.apiId, userId, permissionType: ApiPermission_1.ApiPermissionType.ADMIN }
+                        where: { apiId: plan.apiId, userId, permissionType: ApiPermission_1.PermissionType.ADMIN }
                     });
                     if (!apiPermission) {
                         res.status(403).json({ message: '无权删除API套餐' });
@@ -242,7 +254,7 @@ const deleteApiPlan = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             else {
                 // 检查用户是否有API管理权限
                 const apiPermission = yield ApiPermission_1.ApiPermission.findOne({
-                    where: { apiId: plan.apiId, userId, permissionType: ApiPermission_1.ApiPermissionType.ADMIN }
+                    where: { apiId: plan.apiId, userId, permissionType: ApiPermission_1.PermissionType.ADMIN }
                 });
                 if (!apiPermission) {
                     res.status(403).json({ message: '无权删除API套餐' });
@@ -255,7 +267,7 @@ const deleteApiPlan = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         res.status(200).json({ message: 'API套餐删除成功' });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(500).json({ message: '服务器错误', error: error.message });
     }
 });
 exports.deleteApiPlan = deleteApiPlan;

@@ -9,23 +9,26 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Api = exports.ApiMethod = void 0;
+exports.Api = exports.HttpMethod = void 0;
 /**
  * API模型定义
  */
 const typeorm_1 = require("typeorm");
 const ApiVersion_1 = require("./ApiVersion");
 const ApiPermission_1 = require("./ApiPermission");
-const ApiPlan_1 = require("./ApiPlan");
 const ApiCall_1 = require("./ApiCall");
-var ApiMethod;
-(function (ApiMethod) {
-    ApiMethod["GET"] = "GET";
-    ApiMethod["POST"] = "POST";
-    ApiMethod["PUT"] = "PUT";
-    ApiMethod["DELETE"] = "DELETE";
-    ApiMethod["PATCH"] = "PATCH";
-})(ApiMethod || (exports.ApiMethod = ApiMethod = {}));
+const ApiPlan_1 = require("./ApiPlan");
+// HTTP方法枚举（用于API定义）
+/* eslint-disable no-unused-vars */
+var HttpMethod;
+(function (HttpMethod) {
+    HttpMethod["GET"] = "GET";
+    HttpMethod["POST"] = "POST";
+    HttpMethod["PUT"] = "PUT";
+    HttpMethod["DELETE"] = "DELETE";
+    HttpMethod["PATCH"] = "PATCH";
+})(HttpMethod || (exports.HttpMethod = HttpMethod = {}));
+/* eslint-enable no-unused-vars */
 let Api = class Api extends typeorm_1.BaseEntity {
 };
 exports.Api = Api;
@@ -34,7 +37,7 @@ __decorate([
     __metadata("design:type", Number)
 ], Api.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ unique: true }),
+    (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], Api.prototype, "name", void 0);
 __decorate([
@@ -44,23 +47,39 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
+], Api.prototype, "baseUrl", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Number)
+], Api.prototype, "ownerId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], Api.prototype, "teamId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], Api.prototype, "isPublic", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: true }),
+    __metadata("design:type", Boolean)
+], Api.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], Api.prototype, "currentVersionId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
 ], Api.prototype, "path", void 0);
 __decorate([
     (0, typeorm_1.Column)({
         type: 'enum',
-        enum: ApiMethod,
-        default: ApiMethod.GET
+        enum: HttpMethod,
+        default: HttpMethod.GET
     }),
     __metadata("design:type", String)
 ], Api.prototype, "method", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Object)
-], Api.prototype, "teamId", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], Api.prototype, "createdBy", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
@@ -78,13 +97,13 @@ __decorate([
     __metadata("design:type", Array)
 ], Api.prototype, "permissions", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => ApiPlan_1.ApiPlan, plan => plan.api),
-    __metadata("design:type", Array)
-], Api.prototype, "plans", void 0);
-__decorate([
     (0, typeorm_1.OneToMany)(() => ApiCall_1.ApiCall, call => call.api),
     __metadata("design:type", Array)
 ], Api.prototype, "calls", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => ApiPlan_1.ApiPlan, plan => plan.api),
+    __metadata("design:type", Array)
+], Api.prototype, "plans", void 0);
 exports.Api = Api = __decorate([
     (0, typeorm_1.Entity)()
 ], Api);

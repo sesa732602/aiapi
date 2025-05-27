@@ -196,7 +196,9 @@ const updateUserQuota = async (userId: number, order: Order): Promise<void> => {
     userQuota.apiId = order.apiId;
     userQuota.callLimit = 0;
     userQuota.concurrencyLimit = 0;
-    userQuota.usedCalls = 0;
+    userQuota.callsUsed = 0; // 修正: usedCalls → callsUsed
+    userQuota.remainingCalls = 0; // 添加必要字段
+    userQuota.totalCalls = 0; // 添加必要字段
     userQuota.expiresAt = new Date();
   }
 

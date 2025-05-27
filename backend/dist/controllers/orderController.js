@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -9,283 +42,157 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRevenueStats = exports.cancelOrder = exports.payOrder = exports.getOrderById = exports.getOrders = exports.createOrder = void 0;
-const Order_1 = require("../models/Order");
-const ApiPlan_1 = require("../models/ApiPlan");
-const Api_1 = require("../models/Api");
-const UserQuota_1 = require("../models/UserQuota");
+exports.cancelOrder = exports.payOrder = exports.getOrderById = exports.getOrders = exports.createOrder = void 0;
+const orderService = __importStar(require("../services/orderService"));
 /**
  * 创建订单
- * @param req 请求对象
- * @param res 响应对象
  */
 const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const { planId } = req.body;
-        const userId = req.user.id;
-        // 检查套餐是否存在
-        const planIdNum = parseInt(planId, 10);
-        const plan = yield ApiPlan_1.ApiPlan.findOne({ where: { id: planIdNum } });
-        if (!plan) {
-            res.status(404).json({ message: 'API套餐不存在' });
+        const { apiId, planId } = req.body;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ success: false, message: '未授权' });
             return;
         }
-        // 获取API信息
-        const api = yield Api_1.Api.findOne({ where: { id: plan.apiId } });
-        if (!api) {
-            res.status(404).json({ message: 'API不存在' });
-            return;
-        }
-        // 创建订单
-        const order = new Order_1.Order();
-        order.userId = userId;
-        order.apiId = api.id;
-        order.planId = plan.id;
-        order.amount = plan.price;
-        order.status = 'pending';
-        order.callLimit = plan.callLimit;
-        order.concurrencyLimit = plan.concurrencyLimit;
-        order.validityDays = plan.validityDays;
-        yield order.save();
+        const order = yield orderService.createOrder(userId, apiId, planId);
         res.status(201).json({
+            success: true,
             message: '订单创建成功',
-            order: {
-                id: order.id,
-                amount: order.amount,
-                status: order.status,
-                createdAt: order.createdAt,
-                apiName: api.name,
-                planName: plan.name
-            }
+            data: order
         });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        console.error('创建订单失败:', error);
+        const message = error instanceof Error ? error.message : '服务器错误';
+        res.status(error instanceof Error && error.message.includes('不存在') ? 404 : 500)
+            .json({ success: false, message });
     }
 });
 exports.createOrder = createOrder;
 /**
  * 获取订单列表
- * @param req 请求对象
- * @param res 响应对象
  */
 const getOrders = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const userId = req.user.id;
-        const { status } = req.query;
-        let orders = [];
-        if (req.user.role === 'super_admin') {
-            // 超级管理员可以查看所有订单
-            if (status) {
-                orders = yield Order_1.Order.find({ where: { status: status } });
-            }
-            else {
-                orders = yield Order_1.Order.find();
-            }
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ success: false, message: '未授权' });
+            return;
         }
-        else {
-            // 普通用户只能查看自己的订单
-            if (status) {
-                orders = yield Order_1.Order.find({ where: { userId, status: status } });
+        const { page = 1, pageSize = 10, status } = req.query;
+        const { orders, total } = yield orderService.getOrders(userId, Number(page), Number(pageSize), status);
+        res.status(200).json({
+            success: true,
+            data: {
+                orders,
+                pagination: {
+                    total,
+                    page: Number(page),
+                    pageSize: Number(pageSize),
+                    totalPages: Math.ceil(total / Number(pageSize))
+                }
             }
-            else {
-                orders = yield Order_1.Order.find({ where: { userId } });
-            }
-        }
-        // 获取订单详情
-        const orderDetails = yield Promise.all(orders.map((order) => __awaiter(void 0, void 0, void 0, function* () {
-            const api = yield Api_1.Api.findOne({ where: { id: order.apiId } });
-            const plan = yield ApiPlan_1.ApiPlan.findOne({ where: { id: order.planId } });
-            return Object.assign(Object.assign({}, order), { apiName: api === null || api === void 0 ? void 0 : api.name, planName: plan === null || plan === void 0 ? void 0 : plan.name });
-        })));
-        res.status(200).json(orderDetails);
+        });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        console.error('获取订单列表失败:', error);
+        res.status(500).json({ success: false, message: '服务器错误' });
     }
 });
 exports.getOrders = getOrders;
 /**
  * 获取订单详情
- * @param req 请求对象
- * @param res 响应对象
  */
 const getOrderById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const id = parseInt(req.params.id, 10);
-        const userId = req.user.id;
-        // 检查订单是否存在
-        const order = yield Order_1.Order.findOne({ where: { id } });
-        if (!order) {
-            res.status(404).json({ message: '订单不存在' });
+        const { id } = req.params;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ success: false, message: '未授权' });
             return;
         }
-        // 检查用户是否有权限查看该订单
-        if (req.user.role !== 'super_admin' && order.userId !== userId) {
-            res.status(403).json({ message: '无权查看该订单' });
-            return;
-        }
-        // 获取API和套餐信息
-        const api = yield Api_1.Api.findOne({ where: { id: order.apiId } });
-        const plan = yield ApiPlan_1.ApiPlan.findOne({ where: { id: order.planId } });
-        res.status(200).json(Object.assign(Object.assign({}, order), { apiName: api === null || api === void 0 ? void 0 : api.name, planName: plan === null || plan === void 0 ? void 0 : plan.name }));
+        const order = yield orderService.getOrderById(Number(id), userId);
+        res.status(200).json({
+            success: true,
+            data: order
+        });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        console.error('获取订单详情失败:', error);
+        const message = error instanceof Error ? error.message : '服务器错误';
+        res.status(error instanceof Error && error.message.includes('不存在') ? 404 : 500)
+            .json({ success: false, message });
     }
 });
 exports.getOrderById = getOrderById;
 /**
  * 支付订单
- * @param req 请求对象
- * @param res 响应对象
  */
 const payOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const id = parseInt(req.params.id, 10);
-        const userId = req.user.id;
-        // 检查订单是否存在
-        const order = yield Order_1.Order.findOne({ where: { id } });
-        if (!order) {
-            res.status(404).json({ message: '订单不存在' });
+        const { id } = req.params;
+        const { transactionId, paymentMethod } = req.body;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ success: false, message: '未授权' });
             return;
         }
-        // 检查用户是否有权限支付该订单
-        if (req.user.role !== 'super_admin' && order.userId !== userId) {
-            res.status(403).json({ message: '无权支付该订单' });
-            return;
-        }
-        // 检查订单状态
-        if (order.status !== 'pending') {
-            res.status(400).json({ message: '订单状态不允许支付' });
-            return;
-        }
-        // 更新订单状态
-        order.status = 'paid';
-        order.paidAt = new Date();
-        yield order.save();
-        // 更新用户额度
-        let userQuota = yield UserQuota_1.UserQuota.findOne({ where: { userId, apiId: order.apiId } });
-        if (!userQuota) {
-            // 创建新的用户额度记录
-            userQuota = new UserQuota_1.UserQuota();
-            userQuota.userId = userId;
-            userQuota.apiId = order.apiId;
-            userQuota.callLimit = order.callLimit;
-            userQuota.callsUsed = 0;
-            userQuota.concurrencyLimit = order.concurrencyLimit;
-            userQuota.expiresAt = new Date(Date.now() + order.validityDays * 24 * 60 * 60 * 1000);
-        }
-        else {
-            // 更新现有额度
-            userQuota.callLimit += order.callLimit;
-            userQuota.concurrencyLimit = Math.max(userQuota.concurrencyLimit, order.concurrencyLimit);
-            // 更新过期时间，取较晚的时间
-            const newExpiresAt = new Date(Date.now() + order.validityDays * 24 * 60 * 60 * 1000);
-            if (!userQuota.expiresAt || userQuota.expiresAt < newExpiresAt) {
-                userQuota.expiresAt = newExpiresAt;
-            }
-        }
-        yield userQuota.save();
+        const order = yield orderService.payOrder(Number(id), userId, transactionId, paymentMethod);
         res.status(200).json({
+            success: true,
             message: '订单支付成功',
-            order: Object.assign(Object.assign({}, order), { paidAt: order.paidAt }),
-            quota: userQuota
+            data: {
+                id: order.id,
+                status: order.status,
+                paidAt: order.paidAt
+            }
         });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        console.error('支付订单失败:', error);
+        const message = error instanceof Error ? error.message : '服务器错误';
+        const status = error instanceof Error
+            ? (error.message.includes('不存在') ? 404 : (error.message.includes('只有待支付') ? 400 : 500))
+            : 500;
+        res.status(status).json({ success: false, message });
     }
 });
 exports.payOrder = payOrder;
 /**
  * 取消订单
- * @param req 请求对象
- * @param res 响应对象
  */
 const cancelOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const id = parseInt(req.params.id, 10);
-        const userId = req.user.id;
-        // 检查订单是否存在
-        const order = yield Order_1.Order.findOne({ where: { id } });
-        if (!order) {
-            res.status(404).json({ message: '订单不存在' });
+        const { id } = req.params;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ success: false, message: '未授权' });
             return;
         }
-        // 检查用户是否有权限取消该订单
-        if (req.user.role !== 'super_admin' && order.userId !== userId) {
-            res.status(403).json({ message: '无权取消该订单' });
-            return;
-        }
-        // 检查订单状态
-        if (order.status !== 'pending') {
-            res.status(400).json({ message: '订单状态不允许取消' });
-            return;
-        }
-        // 更新订单状态
-        order.status = 'cancelled';
-        order.cancelledAt = new Date();
-        yield order.save();
+        const order = yield orderService.cancelOrder(Number(id), userId);
         res.status(200).json({
+            success: true,
             message: '订单取消成功',
-            order: Object.assign(Object.assign({}, order), { cancelledAt: order.cancelledAt })
+            data: {
+                id: order.id,
+                status: order.status,
+                cancelledAt: order.cancelledAt
+            }
         });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        console.error('取消订单失败:', error);
+        const message = error instanceof Error ? error.message : '服务器错误';
+        const status = error instanceof Error
+            ? (error.message.includes('不存在') ? 404 : (error.message.includes('只有待支付') ? 400 : 500))
+            : 500;
+        res.status(status).json({ success: false, message });
     }
 });
 exports.cancelOrder = cancelOrder;
-/**
- * 获取收入统计
- * @param req 请求对象
- * @param res 响应对象
- */
-const getRevenueStats = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { startDate, endDate, apiId } = req.query;
-        let whereClause = { status: 'paid' };
-        if (startDate && endDate) {
-            whereClause.paidAt = {
-                $gte: new Date(startDate),
-                $lte: new Date(endDate)
-            };
-        }
-        if (apiId) {
-            whereClause.apiId = parseInt(apiId, 10);
-        }
-        // 获取已支付订单
-        const orders = yield Order_1.Order.find({ where: whereClause });
-        // 计算总收入
-        const totalRevenue = orders.reduce((sum, order) => sum + Number(order.amount), 0);
-        // 按API分组统计
-        const apiRevenue = {};
-        for (const order of orders) {
-            const apiIdStr = order.apiId.toString();
-            if (!apiRevenue[apiIdStr]) {
-                apiRevenue[apiIdStr] = 0;
-            }
-            apiRevenue[apiIdStr] += Number(order.amount);
-        }
-        // 获取API名称
-        const apiRevenueDetails = yield Promise.all(Object.entries(apiRevenue).map((_a) => __awaiter(void 0, [_a], void 0, function* ([apiIdStr, revenue]) {
-            const apiId = parseInt(apiIdStr, 10);
-            const api = yield Api_1.Api.findOne({ where: { id: apiId } });
-            return {
-                apiId,
-                apiName: (api === null || api === void 0 ? void 0 : api.name) || 'Unknown API',
-                revenue
-            };
-        })));
-        res.status(200).json({
-            totalRevenue,
-            apiRevenue: apiRevenueDetails,
-            orderCount: orders.length
-        });
-    }
-    catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
-    }
-});
-exports.getRevenueStats = getRevenueStats;

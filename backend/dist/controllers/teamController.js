@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -9,167 +42,110 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeTeamMember = exports.updateTeamMemberRole = exports.addTeamMember = exports.deleteTeam = exports.updateTeam = exports.getTeamById = exports.getTeams = exports.createTeam = void 0;
-const Team_1 = require("../models/Team");
-const TeamMember_1 = require("../models/TeamMember");
-const User_1 = require("../models/User");
-const typeorm_1 = require("typeorm");
+exports.getInvitableUsers = exports.leaveTeam = exports.removeTeamMember = exports.updateTeamMemberRole = exports.addTeamMember = exports.getTeamMembers = exports.deleteTeam = exports.updateTeam = exports.getTeamDetails = exports.getUserTeam = exports.createTeam = void 0;
+const teamService = __importStar(require("../services/teamService"));
 /**
  * 创建团队
  * @param req 请求对象
  * @param res 响应对象
  */
 const createTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         const { name, description } = req.body;
-        const userId = req.user.id;
-        // 检查团队名称是否已存在
-        const existingTeam = yield Team_1.Team.findOne({ where: { name } });
-        if (existingTeam) {
-            res.status(400).json({ message: '团队名称已存在' });
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ message: '未授权' });
             return;
         }
-        // 创建新团队
-        const team = new Team_1.Team();
-        team.name = name;
-        team.description = description;
-        team.createdBy = userId;
-        yield team.save();
-        // 将创建者添加为团队拥有者
-        const teamMember = new TeamMember_1.TeamMember();
-        teamMember.teamId = team.id;
-        teamMember.userId = userId;
-        teamMember.role = 'owner';
-        yield teamMember.save();
+        // 调用服务层处理业务逻辑
+        const team = yield teamService.createTeam(name, description, userId);
         res.status(201).json({
             message: '团队创建成功',
-            team: {
-                id: team.id,
-                name: team.name,
-                description: team.description,
-                createdAt: team.createdAt
-            }
+            team
         });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(400).json({ message: error.message || '团队创建失败' });
     }
 });
 exports.createTeam = createTeam;
 /**
- * 获取团队列表
+ * 获取用户所在的团队
  * @param req 请求对象
  * @param res 响应对象
  */
-const getTeams = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getUserTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const userId = req.user.id;
-        let teams = [];
-        if (req.user.role === 'super_admin') {
-            // 超级管理员可以查看所有团队
-            teams = yield Team_1.Team.find();
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ message: '未授权' });
+            return;
         }
-        else {
-            // 普通用户只能查看自己所在的团队
-            const teamMembers = yield TeamMember_1.TeamMember.find({ where: { userId } });
-            const teamIds = teamMembers.map(member => member.teamId);
-            if (teamIds.length > 0) {
-                teams = yield Team_1.Team.find({ where: { id: (0, typeorm_1.In)(teamIds) } });
-            }
-        }
-        // 获取团队成员数量
-        const teamsWithMemberCount = yield Promise.all(teams.map((team) => __awaiter(void 0, void 0, void 0, function* () {
-            const memberCount = yield TeamMember_1.TeamMember.count({ where: { teamId: team.id } });
-            return Object.assign(Object.assign({}, team), { memberCount });
-        })));
-        res.status(200).json(teamsWithMemberCount);
+        // 调用服务层处理业务逻辑
+        const teams = yield teamService.getUserTeams(userId);
+        res.status(200).json({ teams });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(500).json({ message: error.message || '获取团队失败' });
     }
 });
-exports.getTeams = getTeams;
+exports.getUserTeam = getUserTeam;
 /**
  * 获取团队详情
  * @param req 请求对象
  * @param res 响应对象
  */
-const getTeamById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getTeamDetails = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const id = parseInt(req.params.id, 10);
-        const userId = req.user.id;
-        // 检查团队是否存在
-        const team = yield Team_1.Team.findOne({ where: { id } });
-        if (!team) {
-            res.status(404).json({ message: '团队不存在' });
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ message: '未授权' });
             return;
         }
-        // 检查用户是否有权限查看该团队
-        if (req.user.role !== 'super_admin') {
-            const teamMember = yield TeamMember_1.TeamMember.findOne({ where: { teamId: id, userId } });
-            if (!teamMember) {
-                res.status(403).json({ message: '无权查看该团队' });
-                return;
-            }
+        const { teamId } = req.query;
+        if (!teamId) {
+            res.status(400).json({ message: '缺少团队ID' });
+            return;
         }
-        // 获取团队成员
-        const members = yield TeamMember_1.TeamMember.find({ where: { teamId: id } });
-        // 获取成员用户信息
-        const memberDetails = yield Promise.all(members.map((member) => __awaiter(void 0, void 0, void 0, function* () {
-            const user = yield User_1.User.findOne({ where: { id: member.userId } });
-            return Object.assign(Object.assign({}, member), { username: user === null || user === void 0 ? void 0 : user.username, email: user === null || user === void 0 ? void 0 : user.email });
-        })));
-        res.status(200).json(Object.assign(Object.assign({}, team), { members: memberDetails }));
+        // 调用服务层处理业务逻辑
+        const team = yield teamService.getTeamDetails(parseInt(teamId, 10), userId);
+        res.status(200).json({ team });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(404).json({ message: error.message || '获取团队详情失败' });
     }
 });
-exports.getTeamById = getTeamById;
+exports.getTeamDetails = getTeamDetails;
 /**
  * 更新团队信息
  * @param req 请求对象
  * @param res 响应对象
  */
 const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const id = parseInt(req.params.id, 10);
-        const { name, description } = req.body;
-        const userId = req.user.id;
-        // 检查团队是否存在
-        const team = yield Team_1.Team.findOne({ where: { id } });
-        if (!team) {
-            res.status(404).json({ message: '团队不存在' });
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ message: '未授权' });
             return;
         }
-        // 检查用户是否有权限更新该团队
-        if (req.user.role !== 'super_admin') {
-            const teamMember = yield TeamMember_1.TeamMember.findOne({ where: { teamId: id, userId } });
-            if (!teamMember || (teamMember.role !== 'owner' && teamMember.role !== 'admin')) {
-                res.status(403).json({ message: '无权更新该团队' });
-                return;
-            }
+        const { teamId, name, description } = req.body;
+        if (!teamId) {
+            res.status(400).json({ message: '缺少团队ID' });
+            return;
         }
-        // 检查团队名称是否已被其他团队使用
-        if (name && name !== team.name) {
-            const existingTeam = yield Team_1.Team.findOne({ where: { name } });
-            if (existingTeam) {
-                res.status(400).json({ message: '团队名称已存在' });
-                return;
-            }
-            team.name = name;
-        }
-        if (description) {
-            team.description = description;
-        }
-        yield team.save();
+        // 调用服务层处理业务逻辑
+        const team = yield teamService.updateTeam(parseInt(teamId, 10), userId, { name, description });
         res.status(200).json({
             message: '团队更新成功',
             team
         });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(400).json({ message: error.message || '团队更新失败' });
     }
 });
 exports.updateTeam = updateTeam;
@@ -179,89 +155,81 @@ exports.updateTeam = updateTeam;
  * @param res 响应对象
  */
 const deleteTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const id = parseInt(req.params.id, 10);
-        const userId = req.user.id;
-        // 检查团队是否存在
-        const team = yield Team_1.Team.findOne({ where: { id } });
-        if (!team) {
-            res.status(404).json({ message: '团队不存在' });
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ message: '未授权' });
             return;
         }
-        // 检查用户是否有权限删除该团队
-        if (req.user.role !== 'super_admin' && team.createdBy !== userId) {
-            const teamMember = yield TeamMember_1.TeamMember.findOne({ where: { teamId: id, userId } });
-            if (!teamMember || teamMember.role !== 'owner') {
-                res.status(403).json({ message: '无权删除该团队' });
-                return;
-            }
+        const { teamId } = req.body;
+        if (!teamId) {
+            res.status(400).json({ message: '缺少团队ID' });
+            return;
         }
-        // 删除团队成员
-        yield TeamMember_1.TeamMember.delete({ teamId: id });
-        // 删除团队
-        yield Team_1.Team.delete({ id });
+        // 调用服务层处理业务逻辑
+        yield teamService.deleteTeam(parseInt(teamId, 10), userId);
         res.status(200).json({ message: '团队删除成功' });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(400).json({ message: error.message || '团队删除失败' });
     }
 });
 exports.deleteTeam = deleteTeam;
+/**
+ * 获取团队成员
+ * @param req 请求对象
+ * @param res 响应对象
+ */
+const getTeamMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
+        const { teamId } = req.query;
+        if (!teamId) {
+            res.status(400).json({ message: '缺少团队ID' });
+            return;
+        }
+        // 调用服务层处理业务逻辑
+        const members = yield teamService.getTeamMembers(parseInt(teamId, 10), userId);
+        res.status(200).json({ members });
+    }
+    catch (error) {
+        res.status(400).json({ message: error.message || '获取团队成员失败' });
+    }
+});
+exports.getTeamMembers = getTeamMembers;
 /**
  * 添加团队成员
  * @param req 请求对象
  * @param res 响应对象
  */
 const addTeamMember = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const id = parseInt(req.params.id, 10);
-        const { userId: memberUserId, role } = req.body;
-        const userId = req.user.id;
-        // 检查团队是否存在
-        const team = yield Team_1.Team.findOne({ where: { id } });
-        if (!team) {
-            res.status(404).json({ message: '团队不存在' });
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ message: '未授权' });
             return;
         }
-        // 检查用户是否有权限添加成员
-        if (req.user.role !== 'super_admin') {
-            const teamMember = yield TeamMember_1.TeamMember.findOne({ where: { teamId: id, userId } });
-            if (!teamMember || (teamMember.role !== 'owner' && teamMember.role !== 'admin')) {
-                res.status(403).json({ message: '无权添加团队成员' });
-                return;
-            }
-        }
-        // 检查角色是否有效
-        if (!['owner', 'admin', 'member'].includes(role)) {
-            res.status(400).json({ message: '无效的角色' });
+        const { teamId, email, role } = req.body;
+        if (!teamId || !email) {
+            res.status(400).json({ message: '缺少必要参数' });
             return;
         }
-        // 检查用户是否存在
-        const memberUserIdNum = parseInt(memberUserId, 10);
-        const user = yield User_1.User.findOne({ where: { id: memberUserIdNum } });
-        if (!user) {
-            res.status(404).json({ message: '用户不存在' });
-            return;
-        }
-        // 检查用户是否已是团队成员
-        const existingMember = yield TeamMember_1.TeamMember.findOne({ where: { teamId: id, userId: memberUserIdNum } });
-        if (existingMember) {
-            res.status(400).json({ message: '用户已是团队成员' });
-            return;
-        }
-        // 添加团队成员
-        const teamMember = new TeamMember_1.TeamMember();
-        teamMember.teamId = id;
-        teamMember.userId = memberUserIdNum;
-        teamMember.role = role;
-        yield teamMember.save();
+        // 调用服务层处理业务逻辑
+        const member = yield teamService.addTeamMember(parseInt(teamId, 10), userId, email, role || 'member');
         res.status(201).json({
-            message: '团队成员添加成功',
-            member: Object.assign(Object.assign({}, teamMember), { username: user.username, email: user.email })
+            message: '成员添加成功',
+            member
         });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(400).json({ message: error.message || '添加团队成员失败' });
     }
 });
 exports.addTeamMember = addTeamMember;
@@ -271,48 +239,28 @@ exports.addTeamMember = addTeamMember;
  * @param res 响应对象
  */
 const updateTeamMemberRole = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const id = parseInt(req.params.id, 10);
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
+        const { teamId, role } = req.body;
         const memberId = parseInt(req.params.memberId, 10);
-        const { role } = req.body;
-        const userId = req.user.id;
-        // 检查团队是否存在
-        const team = yield Team_1.Team.findOne({ where: { id } });
-        if (!team) {
-            res.status(404).json({ message: '团队不存在' });
+        if (!teamId || !role) {
+            res.status(400).json({ message: '缺少必要参数' });
             return;
         }
-        // 检查团队成员是否存在
-        const member = yield TeamMember_1.TeamMember.findOne({ where: { id: memberId, teamId: id } });
-        if (!member) {
-            res.status(404).json({ message: '团队成员不存在' });
-            return;
-        }
-        // 检查用户是否有权限更新成员角色
-        if (req.user.role !== 'super_admin') {
-            const teamMember = yield TeamMember_1.TeamMember.findOne({ where: { teamId: id, userId } });
-            if (!teamMember || teamMember.role !== 'owner') {
-                res.status(403).json({ message: '无权更新团队成员角色' });
-                return;
-            }
-        }
-        // 检查角色是否有效
-        if (!['owner', 'admin', 'member'].includes(role)) {
-            res.status(400).json({ message: '无效的角色' });
-            return;
-        }
-        // 更新成员角色
-        member.role = role;
-        yield member.save();
-        // 获取成员用户信息
-        const user = yield User_1.User.findOne({ where: { id: member.userId } });
+        // 调用服务层处理业务逻辑
+        const member = yield teamService.updateTeamMemberRole(parseInt(teamId, 10), userId, memberId, role);
         res.status(200).json({
-            message: '团队成员角色更新成功',
-            member: Object.assign(Object.assign({}, member), { username: user === null || user === void 0 ? void 0 : user.username, email: user === null || user === void 0 ? void 0 : user.email })
+            message: '成员角色更新成功',
+            member
         });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(400).json({ message: error.message || '更新成员角色失败' });
     }
 });
 exports.updateTeamMemberRole = updateTeamMemberRole;
@@ -322,44 +270,79 @@ exports.updateTeamMemberRole = updateTeamMemberRole;
  * @param res 响应对象
  */
 const removeTeamMember = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const id = parseInt(req.params.id, 10);
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
+        const { teamId } = req.body;
         const memberId = parseInt(req.params.memberId, 10);
-        const userId = req.user.id;
-        // 检查团队是否存在
-        const team = yield Team_1.Team.findOne({ where: { id } });
-        if (!team) {
-            res.status(404).json({ message: '团队不存在' });
+        if (!teamId) {
+            res.status(400).json({ message: '缺少团队ID' });
             return;
         }
-        // 检查团队成员是否存在
-        const member = yield TeamMember_1.TeamMember.findOne({ where: { id: memberId, teamId: id } });
-        if (!member) {
-            res.status(404).json({ message: '团队成员不存在' });
-            return;
-        }
-        // 检查用户是否有权限移除成员
-        if (req.user.role !== 'super_admin') {
-            // 用户可以移除自己
-            if (member.userId !== userId) {
-                const teamMember = yield TeamMember_1.TeamMember.findOne({ where: { teamId: id, userId } });
-                if (!teamMember || (teamMember.role !== 'owner' && teamMember.role !== 'admin')) {
-                    res.status(403).json({ message: '无权移除团队成员' });
-                    return;
-                }
-                // 管理员不能移除拥有者
-                if (teamMember.role === 'admin' && member.role === 'owner') {
-                    res.status(403).json({ message: '无权移除团队拥有者' });
-                    return;
-                }
-            }
-        }
-        // 移除团队成员
-        yield TeamMember_1.TeamMember.delete({ id: memberId });
-        res.status(200).json({ message: '团队成员移除成功' });
+        // 调用服务层处理业务逻辑
+        yield teamService.removeTeamMember(parseInt(teamId, 10), userId, memberId);
+        res.status(200).json({ message: '成员移除成功' });
     }
     catch (error) {
-        res.status(500).json({ message: '服务器错误', error });
+        res.status(400).json({ message: error.message || '移除成员失败' });
     }
 });
 exports.removeTeamMember = removeTeamMember;
+/**
+ * 离开团队
+ * @param req 请求对象
+ * @param res 响应对象
+ */
+const leaveTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
+        const { teamId } = req.body;
+        if (!teamId) {
+            res.status(400).json({ message: '缺少团队ID' });
+            return;
+        }
+        // 调用服务层处理业务逻辑
+        yield teamService.leaveTeam(parseInt(teamId, 10), userId);
+        res.status(200).json({ message: '已成功离开团队' });
+    }
+    catch (error) {
+        res.status(400).json({ message: error.message || '离开团队失败' });
+    }
+});
+exports.leaveTeam = leaveTeam;
+/**
+ * 获取可邀请的用户
+ * @param req 请求对象
+ * @param res 响应对象
+ */
+const getInvitableUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId) {
+            res.status(401).json({ message: '未授权' });
+            return;
+        }
+        const { teamId, query } = req.query;
+        if (!teamId) {
+            res.status(400).json({ message: '缺少团队ID' });
+            return;
+        }
+        // 调用服务层处理业务逻辑
+        const users = yield teamService.getInvitableUsers(parseInt(teamId, 10), userId, query);
+        res.status(200).json({ users });
+    }
+    catch (error) {
+        res.status(400).json({ message: error.message || '获取可邀请用户失败' });
+    }
+});
+exports.getInvitableUsers = getInvitableUsers;

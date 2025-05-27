@@ -66,8 +66,7 @@ export default defineConfig({
         {
           text: t('sidebar.apiSelling'),
           items: [
-            { text: t('sidebar.apiPlans'), link: '/api/plans' },
-            { text: t('sidebar.apiPurchase'), link: '/api/purchase' }
+            { text: t('sidebar.apiPurchase'), link: '/order/create' }
           ]
         }
       ],

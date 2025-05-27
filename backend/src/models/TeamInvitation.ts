@@ -14,61 +14,68 @@ export enum InvitationStatus {
   EXPIRED = 'expired'     // 已过期
 }
 
+// 团队成员角色枚举
+export enum TeamMemberRole {
+  OWNER = 'owner',
+  ADMIN = 'admin',
+  MEMBER = 'member'
+}
+
 @Entity('team_invitations')
 export class TeamInvitation extends BaseEntity {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column()
-  teamId: number;
+  teamId!: number;
 
   @Column()
-  inviterId: number;  // 邀请人ID
+  inviterId!: number;  // 邀请人ID
 
   @Column()
-  inviteeId: number;  // 被邀请人ID
+  inviteeId!: number;  // 被邀请人ID
 
   @Column({
     type: 'enum',
     enum: InvitationStatus,
     default: InvitationStatus.PENDING
   })
-  status: InvitationStatus;
+  status!: InvitationStatus;
 
   @Column({
     type: 'enum',
     enum: ['admin', 'member'],
     default: 'member'
   })
-  role: string;
+  role!: string;
 
   @Column({ nullable: true })
-  message: string;  // 邀请消息
+  message!: string;  // 邀请消息
 
   @Column({ type: 'timestamp', nullable: true })
-  expiresAt: Date;  // 过期时间
+  expiresAt!: Date;  // 过期时间
 
   @Column({ type: 'timestamp', nullable: true })
-  respondedAt: Date;  // 响应时间
+  respondedAt!: Date | null;  // 响应时间
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // 关联团队
   @ManyToOne(() => Team)
   @JoinColumn({ name: 'teamId' })
-  team: Team;
+  team!: Team;
 
   // 关联邀请人
   @ManyToOne(() => User)
   @JoinColumn({ name: 'inviterId' })
-  inviter: User;
+  inviter!: User;
 
   // 关联被邀请人
   @ManyToOne(() => User)
   @JoinColumn({ name: 'inviteeId' })
-  invitee: User;
+  invitee!: User;
 }

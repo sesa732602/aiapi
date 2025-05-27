@@ -35,6 +35,14 @@ __decorate([
     __metadata("design:type", String)
 ], ApiVersion.prototype, "description", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'text' }),
+    __metadata("design:type", String)
+], ApiVersion.prototype, "spec", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Number)
+], ApiVersion.prototype, "createdBy", void 0);
+__decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
 ], ApiVersion.prototype, "isCurrent", void 0);

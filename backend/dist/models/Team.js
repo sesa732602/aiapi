@@ -16,7 +16,6 @@ exports.Team = void 0;
 const typeorm_1 = require("typeorm");
 const TeamMember_1 = require("./TeamMember");
 const ApiPermission_1 = require("./ApiPermission");
-const Api_1 = require("./Api");
 let Team = class Team extends typeorm_1.BaseEntity {
 };
 exports.Team = Team;
@@ -45,17 +44,13 @@ __decorate([
     __metadata("design:type", Date)
 ], Team.prototype, "updatedAt", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => TeamMember_1.TeamMember, member => member.team),
+    (0, typeorm_1.OneToMany)(() => TeamMember_1.TeamMember, teamMember => teamMember.team),
     __metadata("design:type", Array)
 ], Team.prototype, "members", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => ApiPermission_1.ApiPermission, permission => permission.team),
     __metadata("design:type", Array)
 ], Team.prototype, "apiPermissions", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => Api_1.Api, api => api.teamId),
-    __metadata("design:type", Array)
-], Team.prototype, "apis", void 0);
 exports.Team = Team = __decorate([
     (0, typeorm_1.Entity)()
 ], Team);

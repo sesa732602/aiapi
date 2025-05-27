@@ -4,7 +4,7 @@
  * 应用入口文件
  */
 /* eslint-env node */
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 // 加载环境变量
@@ -40,6 +40,32 @@ const startServer = async () => {
     
     // API路由
     app.use('/api', routes);
+    
+    // 404处理中间件 - 确保未匹配的API路由返回JSON而非HTML
+    app.use('/api/*', (req: Request, res: Response) => {
+      res.status(404).json({
+        success: false,
+        message: '未找到请求的API资源',
+        path: req.originalUrl
+      });
+    });
+
+    // 全局错误处理中间件 - 确保所有API异常都返回JSON
+    app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+      // eslint-disable-next-line no-undef
+      console.error('服务器错误:', err);
+      
+      // 只处理API请求的错误
+      if (req.originalUrl.startsWith('/api')) {
+        res.status(500).json({
+          success: false,
+          message: '服务器内部错误',
+          error: process.env.NODE_ENV === 'production' ? undefined : err.message
+        });
+      } else {
+        next(err);
+      }
+    });
     
     // 启动服务器
     app.listen(port, () => {

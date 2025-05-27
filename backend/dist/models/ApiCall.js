@@ -24,8 +24,8 @@ __decorate([
     __metadata("design:type", Number)
 ], ApiCall.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Object)
 ], ApiCall.prototype, "userId", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
@@ -40,9 +40,9 @@ __decorate([
     __metadata("design:type", Number)
 ], ApiCall.prototype, "responseTime", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ name: 'statusCode' }),
     __metadata("design:type", Number)
-], ApiCall.prototype, "statusCode", void 0);
+], ApiCall.prototype, "status", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
@@ -51,6 +51,14 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
 ], ApiCall.prototype, "responseSize", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", Object)
+], ApiCall.prototype, "requestData", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", Object)
+], ApiCall.prototype, "responseData", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

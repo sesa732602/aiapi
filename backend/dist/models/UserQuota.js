@@ -43,12 +43,20 @@ __decorate([
     __metadata("design:type", Number)
 ], UserQuota.prototype, "callsUsed", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], UserQuota.prototype, "remainingCalls", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], UserQuota.prototype, "totalCalls", void 0);
+__decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
 ], UserQuota.prototype, "concurrencyLimit", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Date)
+    (0, typeorm_1.Column)({ nullable: true, type: 'timestamp' }),
+    __metadata("design:type", Object)
 ], UserQuota.prototype, "expiresAt", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => User_1.User, user => user.quotas),

@@ -20,12 +20,14 @@ const ApiPlan_1 = require("./ApiPlan");
 /**
  * 订单状态枚举
  */
+/* eslint-disable no-unused-vars */
 var OrderStatus;
 (function (OrderStatus) {
     OrderStatus["PENDING"] = "pending";
     OrderStatus["PAID"] = "paid";
     OrderStatus["CANCELLED"] = "cancelled";
 })(OrderStatus || (exports.OrderStatus = OrderStatus = {}));
+/* eslint-enable no-unused-vars */
 /**
  * 订单实体
  */

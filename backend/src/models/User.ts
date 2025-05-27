@@ -47,6 +47,12 @@ export class User extends BaseEntity {
   @Column({ nullable: true })
     wechatId!: string;
 
+  @Column({ nullable: true, unique: true })
+    uuid!: string;
+
+  @Column({ nullable: true })
+    lastLoginAt!: Date;
+
   @CreateDateColumn()
     createdAt!: Date;
 

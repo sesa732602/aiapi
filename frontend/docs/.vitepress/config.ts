@@ -44,9 +44,11 @@ export default defineConfig({
     logo: '/logo.png',
     nav: [
       { text: t('nav.home'), link: '/' },
+      { text: t('nav.dashboard'), link: '/dashboard/' },
       { text: t('nav.apiDocs'), link: '/api/' },
-      { text: t('nav.myTeam'), link: '/team/' },
-      { text: t('nav.userCenter'), link: '/user/' }
+      { text: t('nav.teamManagement'), link: '/team/' },
+      { text: t('nav.userCenter'), link: '/user/' },
+      { text: t('nav.statistics'), link: '/stats/' }
     ],
     
     sidebar: {
@@ -55,6 +57,7 @@ export default defineConfig({
           text: t('sidebar.apiManagement'),
           items: [
             { text: t('sidebar.apiOverview'), link: '/api/' },
+            { text: t('sidebar.apiManagement'), link: '/api/management' },
             { text: t('sidebar.apiDetail'), link: '/api/detail' },
             { text: t('sidebar.apiVersions'), link: '/api/versions' },
             { text: t('sidebar.apiPermissions'), link: '/api/permissions' }
@@ -72,7 +75,8 @@ export default defineConfig({
         {
           text: t('nav.myTeam'),
           items: [
-            { text: t('team.management'), link: '/team/' }
+            { text: t('team.management'), link: '/team/' },
+            { text: t('team.members'), link: '/team/members' }
           ]
         }
       ],
@@ -83,6 +87,31 @@ export default defineConfig({
             { text: t('sidebar.profile'), link: '/user/' },
             { text: t('sidebar.myApis'), link: '/user/apis' },
             { text: t('sidebar.myOrders'), link: '/user/orders' }
+          ]
+        }
+      ],
+      '/order/': [
+        {
+          text: t('sidebar.orderManagement'),
+          items: [
+            { text: t('order.management'), link: '/user/orders' },
+            { text: t('order.createOrder'), link: '/order/create' }
+          ]
+        }
+      ],
+      '/dashboard/': [
+        {
+          text: t('nav.dashboard'),
+          items: [
+            { text: t('nav.dashboard'), link: '/dashboard/' }
+          ]
+        }
+      ],
+      '/stats/': [
+        {
+          text: t('nav.statistics'),
+          items: [
+            { text: t('nav.statistics'), link: '/stats/' }
           ]
         }
       ]

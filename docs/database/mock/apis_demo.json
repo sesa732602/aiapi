@@ -1,0 +1,266 @@
+{
+  "apis": [
+    {
+      "id": 1,
+      "name": "ocr",
+      "description": "图片文字识别服务，支持多种语言的文字识别",
+      "endpoint": "/opensapi/ocr",
+      "method": "POST",
+      "version": "1.0",
+      "status": "active",
+      "is_public": true,
+      "category": "图像处理",
+      "tags": ["OCR", "图像识别", "AI"],
+      "created_at": "2024-12-01T00:00:00Z",
+      "updated_at": "2025-01-10T08:15:30Z"
+    },
+    {
+      "id": 2,
+      "name": "audio2text",
+      "description": "语音识别服务，将语音转换为文本",
+      "endpoint": "/opensapi/audio2text",
+      "method": "POST",
+      "version": "1.0",
+      "status": "active",
+      "is_public": true,
+      "category": "语音处理",
+      "tags": ["ASR", "语音识别", "AI"],
+      "created_at": "2024-12-01T00:00:00Z",
+      "updated_at": "2025-02-15T14:30:00Z"
+    },
+    {
+      "id": 3,
+      "name": "text2audio",
+      "description": "语音合成服务，将文本转换为语音",
+      "endpoint": "/opensapi/text2audio",
+      "method": "POST",
+      "version": "1.0",
+      "status": "active",
+      "is_public": true,
+      "category": "语音处理",
+      "tags": ["TTS", "语音合成", "AI"],
+      "created_at": "2024-12-01T00:00:00Z",
+      "updated_at": "2025-03-05T11:45:20Z"
+    },
+    {
+      "id": 4,
+      "name": "md5decrypt",
+      "description": "MD5解密服务，尝试解密给定的MD5哈希值",
+      "endpoint": "/opensapi/md5decrypt",
+      "method": "POST",
+      "version": "1.0",
+      "status": "active",
+      "is_public": true,
+      "category": "安全工具",
+      "tags": ["MD5", "解密", "安全"],
+      "created_at": "2024-12-01T00:00:00Z",
+      "updated_at": "2025-01-20T09:10:15Z"
+    },
+    {
+      "id": 5,
+      "name": "image_enhance",
+      "description": "图像增强服务，提升图像质量和清晰度",
+      "endpoint": "/opensapi/image_enhance",
+      "method": "POST",
+      "version": "1.0",
+      "status": "testing",
+      "is_public": false,
+      "category": "图像处理",
+      "tags": ["图像增强", "AI", "Beta"],
+      "created_at": "2025-04-10T16:20:00Z",
+      "updated_at": "2025-05-15T10:30:45Z"
+    }
+  ],
+  "api_parameters": [
+    {
+      "id": 1,
+      "api_id": 1,
+      "name": "image",
+      "description": "需要识别的图片文件",
+      "type": "file",
+      "required": true,
+      "default_value": null,
+      "example": "image.jpg"
+    },
+    {
+      "id": 2,
+      "api_id": 1,
+      "name": "language",
+      "description": "识别语言，如chi_sim（简体中文）、eng（英文）",
+      "type": "string",
+      "required": false,
+      "default_value": "chi_sim",
+      "example": "chi_sim"
+    },
+    {
+      "id": 3,
+      "api_id": 2,
+      "name": "audio",
+      "description": "需要识别的音频文件",
+      "type": "file",
+      "required": true,
+      "default_value": null,
+      "example": "speech.wav"
+    },
+    {
+      "id": 4,
+      "api_id": 2,
+      "name": "language",
+      "description": "识别语言，如zh-CN（中文）、en-US（英文）",
+      "type": "string",
+      "required": false,
+      "default_value": "zh-CN",
+      "example": "zh-CN"
+    },
+    {
+      "id": 5,
+      "api_id": 3,
+      "name": "text",
+      "description": "需要合成的文本内容",
+      "type": "string",
+      "required": true,
+      "default_value": null,
+      "example": "欢迎使用语音合成服务"
+    },
+    {
+      "id": 6,
+      "api_id": 3,
+      "name": "voice",
+      "description": "发音人，如xiaoyan（女声）、xiaogang（男声）",
+      "type": "string",
+      "required": false,
+      "default_value": "xiaoyan",
+      "example": "xiaoyan"
+    },
+    {
+      "id": 7,
+      "api_id": 3,
+      "name": "format",
+      "description": "音频格式，如mp3、wav",
+      "type": "string",
+      "required": false,
+      "default_value": "mp3",
+      "example": "mp3"
+    },
+    {
+      "id": 8,
+      "api_id": 4,
+      "name": "hash",
+      "description": "需要解密的MD5哈希值",
+      "type": "string",
+      "required": true,
+      "default_value": null,
+      "example": "e10adc3949ba59abbe56e057f20f883e"
+    }
+  ],
+  "api_responses": [
+    {
+      "id": 1,
+      "api_id": 1,
+      "status_code": 200,
+      "description": "识别成功",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "request_id": {"type": "string"},
+          "text": {"type": "string"},
+          "confidence": {"type": "number"},
+          "regions": {"type": "array"}
+        }
+      },
+      "example": {
+        "request_id": "ocr-req-123456",
+        "text": "这是一段示例文本",
+        "confidence": 0.95,
+        "regions": [
+          {
+            "bounding_box": [10, 20, 100, 50],
+            "text": "这是"
+          },
+          {
+            "bounding_box": [110, 20, 200, 50],
+            "text": "一段示例"
+          },
+          {
+            "bounding_box": [210, 20, 300, 50],
+            "text": "文本"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "api_id": 2,
+      "status_code": 200,
+      "description": "识别成功",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "request_id": {"type": "string"},
+          "text": {"type": "string"},
+          "segments": {"type": "array"}
+        }
+      },
+      "example": {
+        "request_id": "asr-req-789012",
+        "text": "欢迎使用语音识别服务",
+        "segments": [
+          {
+            "start_time": 0.0,
+            "end_time": 1.5,
+            "text": "欢迎使用"
+          },
+          {
+            "start_time": 1.5,
+            "end_time": 3.0,
+            "text": "语音识别服务"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "api_id": 4,
+      "status_code": 200,
+      "description": "解密成功或未找到原文",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "request_id": {"type": "string"},
+          "hash": {"type": "string"},
+          "result": {"type": "string"},
+          "found": {"type": "boolean"}
+        }
+      },
+      "example": {
+        "request_id": "md5-req-345678",
+        "hash": "e10adc3949ba59abbe56e057f20f883e",
+        "result": "123456",
+        "found": true
+      }
+    }
+  ],
+  "sdk_examples": [
+    {
+      "id": 1,
+      "api_id": 1,
+      "language": "Python",
+      "code": "import requests\n\nurl = 'https://api.yourdomain.com/v1/opensapi/ocr'\nheaders = {'X-API-KEY': 'your_api_key_here'}\n\nfiles = {'image': open('image.jpg', 'rb')}\ndata = {'language': 'chi_sim'}\n\nresponse = requests.post(url, headers=headers, files=files, data=data)\nprint(response.json())",
+      "description": "Python示例代码"
+    },
+    {
+      "id": 2,
+      "api_id": 1,
+      "language": "JavaScript",
+      "code": "const form = new FormData();\nform.append('image', imageFile);\nform.append('language', 'chi_sim');\n\nfetch('https://api.yourdomain.com/v1/opensapi/ocr', {\n  method: 'POST',\n  headers: {\n    'X-API-KEY': 'your_api_key_here'\n  },\n  body: form\n})\n.then(response => response.json())\n.then(data => console.log(data))\n.catch(error => console.error('Error:', error));",
+      "description": "JavaScript示例代码"
+    },
+    {
+      "id": 3,
+      "api_id": 2,
+      "language": "Python",
+      "code": "import requests\n\nurl = 'https://api.yourdomain.com/v1/opensapi/audio2text'\nheaders = {'X-API-KEY': 'your_api_key_here'}\n\nfiles = {'audio': open('speech.wav', 'rb')}\ndata = {'language': 'zh-CN'}\n\nresponse = requests.post(url, headers=headers, files=files, data=data)\nprint(response.json())",
+      "description": "Python示例代码"
+    }
+  ]
+}

@@ -1,0 +1,157 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "zhangsan",
+      "email": "zhangsan@example.com",
+      "phone": "13800138001",
+      "avatar": "https://api.yourdomain.com/assets/avatars/default1.png",
+      "status": "active",
+      "user_type": "regular",
+      "created_at": "2025-01-15T08:30:00Z",
+      "updated_at": "2025-05-20T14:25:10Z",
+      "last_login": "2025-05-28T09:15:22Z"
+    },
+    {
+      "id": 2,
+      "username": "lisi",
+      "email": "lisi@company.com",
+      "phone": "13900139002",
+      "avatar": "https://api.yourdomain.com/assets/avatars/default2.png",
+      "status": "active",
+      "user_type": "business",
+      "created_at": "2025-02-10T10:45:00Z",
+      "updated_at": "2025-05-25T16:30:45Z",
+      "last_login": "2025-05-29T00:10:05Z"
+    },
+    {
+      "id": 3,
+      "username": "wangwu",
+      "email": "wangwu@example.com",
+      "phone": "13700137003",
+      "avatar": "https://api.yourdomain.com/assets/avatars/custom1.png",
+      "status": "unverified",
+      "user_type": "regular",
+      "created_at": "2025-05-28T18:20:00Z",
+      "updated_at": "2025-05-28T18:20:00Z",
+      "last_login": null
+    },
+    {
+      "id": 4,
+      "username": "admin",
+      "email": "admin@yourdomain.com",
+      "phone": "13600136004",
+      "avatar": "https://api.yourdomain.com/assets/avatars/admin.png",
+      "status": "active",
+      "user_type": "admin",
+      "created_at": "2024-12-01T00:00:00Z",
+      "updated_at": "2025-05-15T11:30:00Z",
+      "last_login": "2025-05-29T00:30:15Z"
+    },
+    {
+      "id": 5,
+      "username": "zhaoliu",
+      "email": "zhaoliu@example.com",
+      "phone": "13500135005",
+      "avatar": "https://api.yourdomain.com/assets/avatars/default3.png",
+      "status": "disabled",
+      "user_type": "regular",
+      "created_at": "2025-03-05T14:20:00Z",
+      "updated_at": "2025-05-10T09:15:30Z",
+      "last_login": "2025-04-28T16:45:20Z"
+    }
+  ],
+  "oauth_accounts": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "provider": "wechat",
+      "provider_user_id": "wx_12345abcde",
+      "access_token": "wx_token_abcdefg",
+      "refresh_token": "wx_refresh_12345",
+      "expires_at": "2025-06-29T09:15:22Z",
+      "created_at": "2025-01-15T08:30:00Z",
+      "updated_at": "2025-05-28T09:15:22Z"
+    },
+    {
+      "id": 2,
+      "user_id": 2,
+      "provider": "google",
+      "provider_user_id": "google_67890fghij",
+      "access_token": "google_token_hijklmn",
+      "refresh_token": "google_refresh_67890",
+      "expires_at": "2025-06-29T00:10:05Z",
+      "created_at": "2025-02-10T10:45:00Z",
+      "updated_at": "2025-05-29T00:10:05Z"
+    }
+  ],
+  "user_roles": [
+    {
+      "user_id": 1,
+      "role_id": 2,
+      "created_at": "2025-01-15T08:30:00Z"
+    },
+    {
+      "user_id": 2,
+      "role_id": 3,
+      "created_at": "2025-02-10T10:45:00Z"
+    },
+    {
+      "user_id": 3,
+      "role_id": 2,
+      "created_at": "2025-05-28T18:20:00Z"
+    },
+    {
+      "user_id": 4,
+      "role_id": 1,
+      "created_at": "2024-12-01T00:00:00Z"
+    },
+    {
+      "user_id": 5,
+      "role_id": 2,
+      "created_at": "2025-03-05T14:20:00Z"
+    }
+  ],
+  "roles": [
+    {
+      "id": 1,
+      "name": "admin",
+      "description": "系统管理员",
+      "created_at": "2024-12-01T00:00:00Z"
+    },
+    {
+      "id": 2,
+      "name": "user",
+      "description": "普通用户",
+      "created_at": "2024-12-01T00:00:00Z"
+    },
+    {
+      "id": 3,
+      "name": "business",
+      "description": "企业用户",
+      "created_at": "2024-12-01T00:00:00Z"
+    }
+  ],
+  "user_settings": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "notification_email": true,
+      "notification_sms": false,
+      "language": "zh-CN",
+      "timezone": "Asia/Shanghai",
+      "created_at": "2025-01-15T08:30:00Z",
+      "updated_at": "2025-05-20T14:25:10Z"
+    },
+    {
+      "id": 2,
+      "user_id": 2,
+      "notification_email": true,
+      "notification_sms": true,
+      "language": "zh-CN",
+      "timezone": "Asia/Shanghai",
+      "created_at": "2025-02-10T10:45:00Z",
+      "updated_at": "2025-05-25T16:30:45Z"
+    }
+  ]
+}

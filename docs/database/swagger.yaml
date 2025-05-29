@@ -1,0 +1,1681 @@
+openapi: 3.0.0
+info:
+  title: API 服务平台
+  description: 提供图片文字识别、语音识别、语音合成、MD5解密等AI服务，并包含用户管理、套餐购买、API密钥管理、日志查询等功能。
+  version: 1.0.0
+servers:
+  - url: https://api.yourdomain.com/v1
+    description: 生产环境
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - 用户认证
+      summary: 用户注册
+      description: 使用邮箱或手机号注册新用户。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegisterRequest'
+      responses:
+        '201':
+          description: 注册成功，返回用户信息和令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: 请求参数错误或用户已存在。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - 用户认证
+      summary: 用户登录
+      description: 使用邮箱/手机号和密码登录。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+      responses:
+        '200':
+          description: 登录成功，返回用户信息和令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: 认证失败（用户名或密码错误）。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags:
+        - 用户认证
+      summary: 刷新令牌
+      description: 使用刷新令牌获取新的访问令牌。
+      security:
+        - bearerAuth: [] # Assuming bearer token for refresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+                  description: 刷新令牌
+              required:
+                - refreshToken
+      responses:
+        '200':
+          description: 令牌刷新成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: 无效的刷新令牌。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/me:
+    get:
+      tags:
+        - 用户管理
+      summary: 获取当前用户信息
+      description: 获取当前已登录用户的详细信息。
+      security:
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: 成功获取用户信息。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - 用户管理
+      summary: 更新当前用户信息
+      description: 更新当前已登录用户的个人资料（如头像、用户名）。
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: 用户信息更新成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: 请求参数错误。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/me/password:
+    put:
+      tags:
+        - 用户管理
+      summary: 修改密码
+      description: 修改当前已登录用户的密码。
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordUpdateRequest'
+      responses:
+        '204':
+          description: 密码修改成功。
+        '400':
+          description: 请求参数错误（如旧密码不正确）。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/me/api-keys:
+    get:
+      tags:
+        - API密钥管理
+      summary: 获取当前用户的API密钥列表
+      description: 获取当前用户拥有的所有API密钥。
+      security:
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: 成功获取API密钥列表。
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApiKey'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - API密钥管理
+      summary: 创建新的API密钥
+      description: 为当前用户创建一个新的API密钥。
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 密钥名称
+                  example: 'My Test Key'
+                expires_at:
+                  type: string
+                  format: date-time
+                  description: 过期时间 (可选)
+              required:
+                - name
+      responses:
+        '201':
+          description: API密钥创建成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKey'
+        '400':
+          description: 请求参数错误。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/me/api-keys/{keyId}:
+    put:
+      tags:
+        - API密钥管理
+      summary: 更新API密钥状态
+      description: 更新指定API密钥的状态（启用/禁用）。
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          description: 要更新的API密钥ID。
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [active, disabled]
+                  description: 新的状态
+              required:
+                - status
+      responses:
+        '200':
+          description: API密钥状态更新成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKey'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 未找到指定的API密钥。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - API密钥管理
+      summary: 删除API密钥
+      description: 删除指定的API密钥。
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          description: 要删除的API密钥ID。
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: API密钥删除成功。
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 未找到指定的API密钥。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /apis:
+    get:
+      tags:
+        - API接口
+      summary: 获取可用API列表
+      description: 获取平台提供的所有公开API接口列表及其基本信息。
+      parameters:
+        - name: category
+          in: query
+          description: 按分类筛选 (可选)
+          schema:
+            type: string
+        - name: tag
+          in: query
+          description: 按标签筛选 (可选)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功获取API列表。
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApiInfo'
+
+  /apis/{apiName}:
+    get:
+      tags:
+        - API接口
+      summary: 获取API详细信息
+      description: 获取指定API的详细信息，包括参数、响应、文档、SDK示例等。
+      parameters:
+        - name: apiName
+          in: path
+          required: true
+          description: API的名称 (例如 ocr, audio2text)。
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功获取API详细信息。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiDetail'
+        '404':
+          description: 未找到指定的API。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /opensapi/ocr:
+    post:
+      tags:
+        - AI服务
+      summary: 图片文字识别 (OCR)
+      description: 识别上传图片中的文字内容。
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: 需要识别的图片文件。
+                language:
+                  type: string
+                  description: 识别语言 (可选, 如 chi_sim, eng)。
+                  default: 'chi_sim'
+              required:
+                - image
+      responses:
+        '200':
+          description: 识别成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OcrResponse'
+        '400':
+          description: 请求错误（如图片格式不支持）。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权或API Key无效。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 权限不足或超出配额。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: 请求频率过高。
+          headers:
+            X-RateLimit-Limit:
+              schema:
+                type: integer
+              description: 当前时间窗口内的最大请求次数。
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
+              description: 当前时间窗口内剩余的请求次数。
+            X-RateLimit-Reset:
+              schema:
+                type: integer
+                format: int64 # Unix timestamp
+              description: 速率限制重置的时间戳。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器内部错误。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /opensapi/audio2text:
+    post:
+      tags:
+        - AI服务
+      summary: 语音识别 (ASR)
+      description: 将上传的音频文件转换为文本。
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                audio:
+                  type: string
+                  format: binary
+                  description: 需要识别的音频文件 (如 wav, mp3)。
+                language:
+                  type: string
+                  description: 识别语言 (可选, 如 zh-CN, en-US)。
+                  default: 'zh-CN'
+              required:
+                - audio
+      responses:
+        '200':
+          description: 识别成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Audio2TextResponse'
+        '400':
+          description: 请求错误（如音频格式不支持）。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权或API Key无效。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 权限不足或超出配额。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: 请求频率过高。
+          headers:
+            $ref: '#/components/headers/RateLimitHeaders'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器内部错误。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /opensapi/text2audio:
+    post:
+      tags:
+        - AI服务
+      summary: 语音合成 (TTS)
+      description: 将文本转换为语音文件。
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Text2AudioRequest'
+      responses:
+        '200':
+          description: 合成成功，返回音频文件。
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+            audio/wav:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: 请求错误（如文本过长）。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权或API Key无效。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 权限不足或超出配额。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: 请求频率过高。
+          headers:
+            $ref: '#/components/headers/RateLimitHeaders'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器内部错误。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /opensapi/md5decrypt:
+    post:
+      tags:
+        - AI服务
+      summary: MD5解密
+      description: 尝试解密给定的MD5哈希值。
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                hash:
+                  type: string
+                  description: 需要解密的MD5哈希值。
+                  example: 'e10adc3949ba59abbe56e057f20f883e'
+              required:
+                - hash
+      responses:
+        '200':
+          description: 解密成功或未找到原文。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Md5DecryptResponse'
+        '400':
+          description: 请求错误（如哈希格式无效）。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权或API Key无效。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 权限不足或超出配额。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: 请求频率过高。
+          headers:
+            $ref: '#/components/headers/RateLimitHeaders'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器内部错误。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /plans:
+    get:
+      tags:
+        - 套餐与计费
+      summary: 获取可用套餐列表
+      description: 获取平台提供的所有可用套餐列表。
+      responses:
+        '200':
+          description: 成功获取套餐列表。
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Plan'
+
+  /orders:
+    get:
+      tags:
+        - 套餐与计费
+      summary: 获取用户订单列表
+      description: 获取当前用户的订单历史记录。
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: 按订单状态筛选 (可选)
+          schema:
+            type: string
+            enum: [pending, paid, cancelled, refunded]
+        - name: limit
+          in: query
+          description: 每页数量 (可选, 默认 10)
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          description: 偏移量 (可选, 默认 0)
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: 成功获取订单列表。
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - 套餐与计费
+      summary: 创建订单
+      description: 用户购买套餐或充值时创建订单。
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+      responses:
+        '201':
+          description: 订单创建成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: 请求参数错误（如套餐ID无效）。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/{orderId}:
+    get:
+      tags:
+        - 套餐与计费
+      summary: 获取订单详情
+      description: 获取指定订单的详细信息。
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: 订单ID。
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功获取订单详情。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetail'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 未找到指定的订单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /payments/notify/{gateway}:
+    post:
+      tags:
+        - 支付
+      summary: 支付网关回调
+      description: 接收来自支付网关（如支付宝、微信支付）的异步支付结果通知。
+      parameters:
+        - name: gateway
+          in: path
+          required: true
+          description: 支付网关标识 (alipay, wechat, paypal, stripe)。
+          schema:
+            type: string
+      requestBody:
+        description: 支付网关发送的通知数据，格式因网关而异。
+        required: true
+        content:
+          application/x-www-form-urlencoded: {}
+          application/json: {}
+          text/xml: {}
+      responses:
+        '200':
+          description: 成功接收并处理通知 (具体响应内容需符合各网关要求)。
+        '400':
+          description: 回调数据无效或处理失败。
+
+  /balance:
+    get:
+      tags:
+        - 套餐与计费
+      summary: 获取用户余额
+      description: 获取当前用户的账户余额。
+      security:
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: 成功获取余额信息。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Balance'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /invoices:
+    get:
+      tags:
+        - 套餐与计费
+      summary: 获取用户账单列表
+      description: 获取当前用户的账单历史记录。
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: 按账单状态筛选 (可选)
+          schema:
+            type: string
+            enum: [unpaid, paid, partially_paid, cancelled]
+        - name: limit
+          in: query
+          description: 每页数量 (可选, 默认 10)
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          description: 偏移量 (可选, 默认 0)
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: 成功获取账单列表。
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invoice'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /invoices/{invoiceId}:
+    get:
+      tags:
+        - 套餐与计费
+      summary: 获取账单详情
+      description: 获取指定账单的详细信息，包括账单项目。
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          description: 账单ID。
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功获取账单详情。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceDetail'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 未找到指定的账单。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /logs/requests:
+    get:
+      tags:
+        - 日志管理
+      summary: 获取API请求日志
+      description: 获取当前用户的API调用日志（元数据）。实际日志内容需通过下载接口获取。
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - name: api_id
+          in: query
+          description: 按API ID筛选 (可选)
+          schema:
+            type: integer
+        - name: start_time
+          in: query
+          description: 开始时间 (可选, ISO 8601格式)
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          description: 结束时间 (可选, ISO 8601格式)
+          schema:
+            type: string
+            format: date-time
+        - name: status_code
+          in: query
+          description: 按HTTP状态码筛选 (可选)
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: 每页数量 (可选, 默认 100)
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: 偏移量 (可选, 默认 0)
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: 成功获取请求日志元数据列表。
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RequestLogMeta'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /logs/download:
+    get:
+      tags:
+        - 日志管理
+      summary: 下载日志文件
+      description: 根据时间范围和API筛选，生成并下载用户的API调用日志文件（TXT格式）。
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - name: api_id
+          in: query
+          description: 按API ID筛选 (可选)
+          schema:
+            type: integer
+        - name: start_time
+          in: query
+          required: true
+          description: 开始时间 (ISO 8601格式)
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          required: true
+          description: 结束时间 (ISO 8601格式)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: 成功生成并开始下载日志文件。
+          content:
+            text/plain:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: '指示浏览器下载文件，例如: attachment; filename="api_logs_20250529.txt"'
+        '400':
+          description: 请求参数错误（如时间范围过大）。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 指定时间范围内无日志记录。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    UserRegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: 邮箱地址
+        phone:
+          type: string
+          description: 手机号码 (邮箱和手机号至少提供一个)
+        password:
+          type: string
+          format: password
+          description: 密码 (至少8位)
+        username:
+          type: string
+          description: 用户名 (可选)
+      required:
+        - password
+
+    UserLoginRequest:
+      type: object
+      properties:
+        login_identifier:
+          type: string
+          description: 邮箱或手机号
+        password:
+          type: string
+          format: password
+          description: 密码
+      required:
+        - login_identifier
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        access_token:
+          type: string
+          description: 访问令牌
+        refresh_token:
+          type: string
+          description: 刷新令牌
+        expires_in:
+          type: integer
+          description: 访问令牌有效期（秒）
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        avatar:
+          type: string
+          format: url
+        status:
+          type: string
+          enum: [active, disabled, unverified]
+        user_type:
+          type: string
+          enum: [regular, business, admin]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        last_login:
+          type: string
+          format: date-time
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        avatar:
+          type: string
+          format: url
+
+    PasswordUpdateRequest:
+      type: object
+      properties:
+        old_password:
+          type: string
+          format: password
+        new_password:
+          type: string
+          format: password
+      required:
+        - old_password
+        - new_password
+
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        key:
+          type: string
+          description: API Key (仅在创建时完整显示一次)
+        name:
+          type: string
+        status:
+          type: string
+          enum: [active, disabled, expired]
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        last_used_at:
+          type: string
+          format: date-time
+
+    ApiInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          description: API 唯一名称 (用于路径)
+        description:
+          type: string
+        endpoint:
+          type: string
+          description: 公开访问路径
+        method:
+          type: string
+          enum: [GET, POST, PUT, DELETE, PATCH, OPTIONS]
+        version:
+          type: string
+        status:
+          type: string
+          enum: [active, disabled, testing]
+        is_public:
+          type: boolean
+        category:
+          type: string
+          description: API 分类名称
+        tags:
+          type: array
+          items:
+            type: string
+          description: API 标签
+
+    ApiDetail:
+      allOf:
+        - $ref: '#/components/schemas/ApiInfo'
+        - type: object
+          properties:
+            parameters:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApiParameter'
+            responses:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApiResponseSchema'
+            documentation:
+              type: string
+              description: API 文档内容 (Markdown)
+            sdk_examples:
+              type: array
+              items:
+                $ref: '#/components/schemas/SdkExample'
+            error_codes:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApiErrorCode'
+
+    ApiParameter:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+        required:
+          type: boolean
+        default_value:
+          type: string
+        example:
+          type: string
+
+    ApiResponseSchema:
+      type: object
+      properties:
+        status_code:
+          type: integer
+        description:
+          type: string
+        schema:
+          type: object # JSON Schema
+        example:
+          type: object # JSON Example
+
+    SdkExample:
+      type: object
+      properties:
+        language:
+          type: string
+        code:
+          type: string
+        description:
+          type: string
+
+    ApiErrorCode:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        description:
+          type: string
+
+    OcrResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+        text:
+          type: string
+          description: 识别出的文本内容
+        confidence:
+          type: number
+          format: float
+          description: 置信度 (可选)
+        regions:
+          type: array
+          items:
+            type: object
+            properties:
+              bounding_box:
+                type: array
+                items:
+                  type: integer
+                description: 区域坐标 [x1, y1, x2, y2]
+              text:
+                type: string
+                description: 区域内的文本
+          description: 文本区域信息 (可选)
+
+    Audio2TextResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+        text:
+          type: string
+          description: 识别出的文本内容
+        segments:
+          type: array
+          items:
+            type: object
+            properties:
+              start_time:
+                type: number
+                format: float
+                description: 片段开始时间 (秒)
+              end_time:
+                type: number
+                format: float
+                description: 片段结束时间 (秒)
+              text:
+                type: string
+                description: 片段文本
+          description: 分段信息 (可选)
+
+    Text2AudioRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          description: 需要合成的文本
+        voice:
+          type: string
+          description: 发音人 (可选, 如 'xiaoyan')
+          default: 'default'
+        format:
+          type: string
+          description: 音频格式 (可选, 如 'mp3', 'wav')
+          default: 'mp3'
+        speed:
+          type: number
+          format: float
+          description: 语速 (可选, 0.5 - 2.0)
+          default: 1.0
+        pitch:
+          type: number
+          format: float
+          description: 音调 (可选, 0.5 - 2.0)
+          default: 1.0
+        volume:
+          type: number
+          format: float
+          description: 音量 (可选, 0.0 - 1.0)
+          default: 1.0
+      required:
+        - text
+
+    Md5DecryptResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+        hash:
+          type: string
+          description: 请求解密的哈希值
+        result:
+          type: string
+          description: 解密得到的原文 (如果找到)
+        found:
+          type: boolean
+          description: 是否找到原文
+
+    Plan:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+        currency:
+          type: string
+        billing_cycle:
+          type: string
+          enum: [one_time, monthly, yearly]
+        duration:
+          type: integer
+          description: 持续时间（月）
+        is_active:
+          type: boolean
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanFeature'
+        api_quotas:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanApiQuota'
+
+    PlanFeature:
+      type: object
+      properties:
+        feature_name:
+          type: string
+        feature_value:
+          type: string
+        feature_type:
+          type: string
+          enum: [text, number, boolean]
+
+    PlanApiQuota:
+      type: object
+      properties:
+        api_id:
+          type: integer
+          format: int64
+        api_name:
+          type: string
+        quota:
+          type: integer
+          description: 调用次数配额
+
+    OrderCreateRequest:
+      type: object
+      properties:
+        plan_id:
+          type: integer
+          format: int64
+          description: 要购买的套餐ID
+        coupon_code:
+          type: string
+          description: 优惠券代码 (可选)
+      required:
+        - plan_id
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        order_number:
+          type: string
+        user_id:
+          type: integer
+          format: int64
+        plan_id:
+          type: integer
+          format: int64
+        plan_name:
+          type: string
+        amount:
+          type: number
+          format: float
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [pending, paid, cancelled, refunded]
+        payment_method:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        paid_at:
+          type: string
+          format: date-time
+
+    OrderDetail:
+      allOf:
+        - $ref: '#/components/schemas/Order'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItem'
+            payment:
+              $ref: '#/components/schemas/Payment'
+
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        item_type:
+          type: string
+          enum: [plan, api_quota, feature]
+        item_id:
+          type: integer
+          format: int64
+        description:
+          type: string
+        quantity:
+          type: integer
+        unit_price:
+          type: number
+          format: float
+        amount:
+          type: number
+          format: float
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        transaction_id:
+          type: string
+        amount:
+          type: number
+          format: float
+        currency:
+          type: string
+        payment_method:
+          type: string
+        payment_gateway:
+          type: string
+        status:
+          type: string
+          enum: [success, failed, pending]
+        created_at:
+          type: string
+          format: date-time
+
+    Balance:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          format: int64
+        balance:
+          type: number
+          format: float
+        currency:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        invoice_number:
+          type: string
+        user_id:
+          type: integer
+          format: int64
+        amount:
+          type: number
+          format: float
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [unpaid, paid, partially_paid, cancelled]
+        due_date:
+          type: string
+          format: date-time
+        issued_date:
+          type: string
+          format: date-time
+        paid_date:
+          type: string
+          format: date-time
+
+    InvoiceDetail:
+      allOf:
+        - $ref: '#/components/schemas/Invoice'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/InvoiceItem'
+
+    InvoiceItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        description:
+          type: string
+        quantity:
+          type: integer
+        unit_price:
+          type: number
+          format: float
+        amount:
+          type: number
+          format: float
+        api_id:
+          type: integer
+          format: int64
+
+    RequestLogMeta:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        user_id:
+          type: integer
+          format: int64
+        api_id:
+          type: integer
+          format: int64
+        api_name:
+          type: string
+        api_key_id:
+          type: integer
+          format: int64
+        ip_address:
+          type: string
+        request_time:
+          type: string
+          format: date-time
+        method:
+          type: string
+        path:
+          type: string
+        response_status:
+          type: integer
+        response_time:
+          type: integer
+          description: 响应时间 (毫秒)
+        error:
+          type: string
+        log_file_path:
+          type: string
+          description: 实际日志存储路径 (内部使用)
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 业务错误码
+        message:
+          type: string
+          description: 错误信息描述
+        request_id:
+          type: string
+          description: 请求ID (用于追踪)
+      required:
+        - code
+        - message
+
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+      description: 用户生成的API密钥，放在请求头X-API-KEY中进行认证。
+    bearerAuth: # Example for refresh token or other session-based auth
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  headers:
+    RateLimitHeaders:
+      X-RateLimit-Limit:
+        schema:
+          type: integer
+        description: 当前时间窗口内的最大请求次数。
+      X-RateLimit-Remaining:
+        schema:
+          type: integer
+        description: 当前时间窗口内剩余的请求次数。
+      X-RateLimit-Reset:
+        schema:
+          type: integer
+          format: int64 # Unix timestamp
+        description: 速率限制重置的时间戳。
+
+security:
+  - apiKeyAuth: []
+
+tags:
+  - name: 用户认证
+    description: 用户注册、登录、令牌管理
+  - name: 用户管理
+    description: 用户信息、密码管理
+  - name: API密钥管理
+    description: API Key的创建、查询、更新、删除
+  - name: API接口
+    description: API接口信息查询
+  - name: AI服务
+    description: 核心AI能力接口调用
+  - name: 套餐与计费
+    description: 套餐查询、订单管理、余额、账单
+  - name: 支付
+    description: 支付相关接口（主要是回调）
+  - name: 日志管理
+    description: API调用日志查询与下载
+
